@@ -8,3 +8,7 @@ The idea is to use 2 files:
 - 1 / many mapping file, describing the relation between the bones in the data and the avatar in the 3D engine
 
 check json-template.js & json-mapping-template.js for details
+
+TODO:
+- reader in blender
+- reader in unity
