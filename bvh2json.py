@@ -316,7 +316,7 @@ class BvhConverter():
 		json.write("\"name\":\"%s\",%s" % ( data.name, endl ) )
 		json.write("\"origin\":\"%s\",%s" % ( fpath, endl ) )
 		json.write("\"keys\":%i,%s" % ( data.maxframe, endl ) )
-		json.write("\"groups\":[%s%s{ \"name\":\"default\", \"in\":-1, \"out\":-1, \"kin\":%i, \"kout\":%i, } %s],%s" % ( endl, tab, 0, data.maxframe, endl, endl ) )
+		json.write("\"groups\":[%s%s{ \"name\":\"default\", \"in\":-1, \"out\":-1, \"kin\":%i, \"kout\":%i, },%s],%s" % ( endl, tab, 0, data.maxframe, endl, endl ) )
 		json.write("\"list\":[%s" % ( endl ) )
 		for i in data.nodes:
 			json.write( "%s\"%s\",%s" % ( tab, data.nodes[ i ].name, endl ) )
@@ -506,45 +506,50 @@ class BvhConverter():
 		
 		endl = ""
 		tab = ""
+		tab2 = ""
 		if not JSON_COMPRESS:
 			endl = "\n"
 			tab = "\t"
+			tab2 = "\t\t"
 		
 		time = frame * data.frametime * 1000.0
-		json.write("%s{%s" % ( tab, endl ) )
-		json.write("%s\"key\":%f,%s" % ( tab, time, endl ) )
 		
-		json.write("%s\"positions\":{%s" % ( tab, endl ) )
-		json.write("%s%s\"bones\":[" % ( tab,tab ))
+		json.write("%s{%s" % ( tab, endl ) )
+		
+		json.write("%s\"key\":%f,%s" % ( tab2, time, endl ) )
+		json.write("%s\"positions\":{%s" % ( tab2, endl ) )
+		json.write("%s%s\"bones\":[" % ( tab2,tab ))
 		for n in fData[ "positionIds" ]:
 			if type( n ) == type(str()):
 				json.write("\"%s\"," % ( n ) )
 			else:
 				json.write("%i," % ( n ) )
 		json.write("],%s" % ( endl ) )
-		json.write("%s%s\"values\":[" % ( tab,tab ) )
+		json.write("%s%s\"values\":[" % ( tab2,tab ) )
 		for v in fData[ "positionData" ]:
 			json.write("%f,%f,%f," % ( v.x, v.y,v.z ) )
 		json.write("],%s" % ( endl ) )
-		json.write("%s},%s" % ( tab, endl ) )
+		json.write("%s},%s" % ( tab2, endl ) )
 		
-		json.write("%s\"quaternions\":{%s" % ( tab, endl ) )
-		json.write("%s%s\"bones\":[" % ( tab,tab ))
+		json.write("%s\"quaternions\":{%s" % ( tab2, endl ) )
+		json.write("%s%s\"bones\":[" % ( tab2,tab ))
 		for n in fData[ "quaternionIds" ]:
 			if type( n ) == type(str()):
 				json.write("\"%s\"," % ( n ) )
 			else:
 				json.write("%i," % ( n ) )
 		json.write("],%s" % ( endl ) )
-		json.write("%s%s\"values\":[" % ( tab,tab ) )
+		json.write("%s%s\"values\":[" % ( tab2,tab ) )
 		for q in fData[ "quaternionData" ]:
 			json.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w )  )
 		json.write("],%s" % ( endl ) )
-		json.write("%s},%s" % ( tab, endl ) )
+		json.write("%s},%s" % ( tab2, endl ) )
 		
-		json.write("%s\"scales\":{%s" % ( tab, endl ) )
-		json.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
-		json.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
+		json.write("%s\"scales\":{%s" % ( tab2, endl ) )
+		json.write("%s%s\"bones\":[],%s" % ( tab2,tab,endl ) )
+		json.write("%s%s\"values\":[],%s" % ( tab2,tab,endl ) )
+		json.write("%s},%s" % ( tab2, endl ) )
+		
 		json.write("%s},%s" % ( tab, endl ) )
 		
 		return
@@ -693,7 +698,7 @@ class BvhConverter():
 		for child in node.children:
 			self.hierarchyPrint( json, child, lvl )
 		
-		json.write("%s},%s" % ( tab,endl ) )
+		json.write("%s],},%s" % ( tab,endl ) )
 
 	def seekOrigins( self, nodes ):
 		
