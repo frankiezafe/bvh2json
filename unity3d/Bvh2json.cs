@@ -83,7 +83,7 @@ namespace Bvh2json {
 
 		}
 
-		# private float gettry( object out  )
+		// private float gettry( object out  )
 
 	}
 	#endregion
