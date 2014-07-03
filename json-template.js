@@ -8,6 +8,7 @@
 	"model": "bvh_numediart", // ULTRA important for mapping!!! each file with same model will have the same bones names & hierarchy
 	"origin": "file.bvh", // original file
 	"keys": 200, // number of keys in the file
+	"dropped_keys": 0, // number of blank keys in the original file
 	"groups": [ // groups of keys, used as sequences
 		{ "name": "start", "in": 0, "out": 20, "kin": -1, "kout": -1 }, // in & out: time in millis
 		{ "name": "walk", "in": -1, "out": -1, "kin": 6, "kout": 25 }, // kin & kout: key index

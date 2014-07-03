@@ -5,7 +5,8 @@
 "desc":"generated with bvh2json.py - frankiezafe - july 2014",
 "name":"test",
 "origin":"//bvhs/test.bvh",
-"keys":651,
+"keys":428,
+"dropped_keys":223,
 "groups":[
 	{ "name":"default", "in":-1, "out":-1, "kin":0, "kout":651, },
 ],
