@@ -1,4 +1,4 @@
-bvh2json
+Bvh2json
 ========
 
 custom motion capture format based on json
@@ -9,7 +9,13 @@ The idea is to use 2 files:
 
 check json-template.js & json-mapping-template.js for details
 
+Unity 3D
+========
+JSonFX : https://github.com/jsonfx/jsonfx
+MiniJSON: https://gist.github.com/darktable/1411710
+
 TODO:
+=====
 - [done] add a "summary" in data : shows bones that are updated on position, rotation & scale
 - add "offset" field from bvh bones description
 - reader in blender

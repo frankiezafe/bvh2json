@@ -315,7 +315,7 @@ class BvhConverter():
 		json.write("\"desc\":\"%s\",%s" % ( JSON_DESC, endl ) )
 		json.write("\"name\":\"%s\",%s" % ( data.name, endl ) )
 		json.write("\"origin\":\"%s\",%s" % ( fpath, endl ) )
-		json.write("\"keys\":\"%i\",%s" % ( data.maxframe, endl ) )
+		json.write("\"keys\":%i,%s" % ( data.maxframe, endl ) )
 		json.write("\"groups\":[%s%s{ \"name\":\"default\", \"in\":-1, \"out\":-1, \"kin\":%i, \"kout\":%i, } %s],%s" % ( endl, tab, 0, data.maxframe, endl, endl ) )
 		json.write("\"list\":[%s" % ( endl ) )
 		for i in data.nodes:
