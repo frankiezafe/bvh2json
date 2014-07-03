@@ -10,7 +10,7 @@ The idea is to use 2 files:
 check json-template.js & json-mapping-template.js for details
 
 TODO:
-- add a "summary" in data : shows bones that are updated on position, rotation & scale
+[done] add a "summary" in data : shows bones that are updated on position, rotation & scale
 - add "offset" field from bvh bones description
 - reader in blender
 - reader in unity

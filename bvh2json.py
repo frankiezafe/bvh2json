@@ -2,6 +2,7 @@ import bpy
 from math import radians
 from mathutils import Vector, Euler, Matrix, Quaternion
 from collections import OrderedDict
+import locale
 
 JSON_TYPE = "data"
 JSON_VERSION = "0.0"
@@ -292,6 +293,10 @@ class BvhConverter():
 	
 	def saveJsonData( self, fpath, data ):
 		
+		# sorting nodes by name
+		data.nodes = OrderedDict( sorted( data.nodes.items() ) )
+		# print( data.nodes.keys() )		
+		
 		jpath = fpath[ 0:-4 ]+".json"
 		jpath = bpy.path.abspath( jpath )
 		json = open( jpath, 'w' )
@@ -326,14 +331,45 @@ class BvhConverter():
 		# json.write("\"frametime\":\"%f\",%s" % ( data.frametime * 1000, endl ) )
 		
 		# big stuff now!
-		self.previousFrame = 0
+		self.dataframes = {}
+		self.dataframes[ "summary" ] = self.newFrameData()
+		self.dataframes[ "data" ] = [] # list of frameData
+		self.previousDFrame = 0
+		self.collectFrames( data )
+		print( "SUMMARY", self.dataframes[ "summary" ] )
+		
+		# writting summary
+		json.write("\"summary\":{%s" % ( endl ) )
+		json.write("%s\"positions\":[" % ( tab ) )
+		for n in self.dataframes[ "summary" ][ "positionIds" ]:
+			if type( n ) == type(str()):
+				json.write("\"%s\"," % ( n ) )
+			else:
+				json.write("%i," % ( n ) )
+		json.write("],%s" % ( endl ) )
+		json.write("%s\"quaternions\":[" % ( tab ) )
+		for n in self.dataframes[ "summary" ][ "quaternionIds" ]:
+			if type( n ) == type(str()):
+				json.write("\"%s\"," % ( n ) )
+			else:
+				json.write("%i," % ( n ) )
+		json.write("],%s" % ( endl ) )
+		json.write("%s\"scales\":[" % ( tab ) )
+		for n in self.dataframes[ "summary" ][ "scaleIds" ]:
+			json.write("%s," % ( n ) )
+		json.write("],%s" % ( endl ) )
+		json.write("},%s" % ( endl ) )
+
 		json.write("\"data\":[%s" % ( endl ) )
-		for i in range( int( data.maxframe ) ):
+		for i in range( len( self.dataframes[ "data" ] ) ):
 			self.framePrint( json, data, i )
 		json.write("],%s" % ( endl ) )
 		
 		json.write("}")
 		json.close()
+		
+		del self.dataframes
+		del self.previousDFrame
 	
 	def compareQuats( self, q1, q2 ):
 		if q1 is None or q2 is None:
@@ -345,17 +381,181 @@ class BvhConverter():
 	def sortDict( self, d ):
 		return OrderedDict( sorted( d.items(), key=lambda x: x[1] ) )
 	
+	def newFrameData( self ):
+		fData = {}
+		fData[ "positionIds" ] = []
+		fData[ "positionData" ] = []
+		fData[ "quaternionIds" ] = []
+		fData[ "quaternionData" ] = []
+		fData[ "scaleIds" ] = []
+		fData[ "scaleData" ] = []
+		return fData
+	
+	def collectFrames( self, data ):
+		
+		if not JSON_OPTIMISE:
+			self.dataframes[ "summary" ][ "positionIds" ].append( "all" )
+			self.dataframes[ "summary" ][ "quaternionIds" ].append( "all" )
+			# NO SCALING
+		
+		for frame in range( int( data.maxframe ) ):
+		
+			allpositions = {}
+			allquaterions = {}
+			
+			frameData = self.newFrameData()
+			
+			for n in data.nodes:
+			
+				node = data.nodes[ n ]
+				d = node.anim_data[ int( frame ) ]
+				allpositions[ n ] = Vector( ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
+				allquaterions[ n ] = self.getQuaternion( node, frame )
+				
+			if JSON_OPTIMISE:
+			
+				i = 0
+				pchanged = {}
+				qchanged = {}
+				emptyq = Euler( ( 0,0,0 ), "XYZ" ).to_quaternion()
+				emptyv = Vector( ( 0,0,0 ) )
+				
+				for n in data.nodes:
+					if self.previousDFrame is not 0:
+						if self.previousDFrame[ "positions" ][ n ] != allpositions[ n ]:
+							pchanged[ n ] = i
+						if not self.compareQuats( self.previousDFrame[ "quaternions" ][ n ], allquaterions[ n ] ):
+							qchanged[ n ] = i
+					elif self.previousDFrame is 0:
+						if allpositions[ n ] != emptyv:
+							pchanged[ n ] = i
+						if not self.compareQuats( allquaterions[ n ], emptyq ):
+							qchanged[ n ] = i
+					else:
+						pchanged[ n ] = i
+						qchanged[ n ] = i
+					i += 1
+				
+				pchanged = self.sortDict( pchanged )
+				qchanged = self.sortDict( qchanged )
+				
+				# adding new bones that have changed in the summary
+				for n in pchanged:
+					found = False
+					for nId in self.dataframes[ "summary" ][ "positionIds" ]:
+						if nId == pchanged[ n ]:
+							found = True
+							break
+					if not found:
+						self.dataframes[ "summary" ][ "positionIds" ].append( pchanged[ n ] )
+				for n in qchanged:
+					found = False
+					for nId in self.dataframes[ "summary" ][ "quaternionIds" ]:
+						if nId == qchanged[ n ]:
+							found = True
+							break
+					if not found:
+						self.dataframes[ "summary" ][ "quaternionIds" ].append( qchanged[ n ] )			
+			
+				if len( pchanged ) == len( data.nodes ):
+					frameData[ "positionIds" ].append( "all" )
+					for n in pchanged:
+						frameData[ "positionData" ].append( allpositions[ n ] )
+				elif len( pchanged ) != 0:
+					for n in pchanged:
+						frameData[ "positionIds" ].append( pchanged[ n ] )
+					for n in pchanged:
+						frameData[ "positionData" ].append( allpositions[ n ] )
+				
+				if len( qchanged ) == len( data.nodes ):
+					frameData[ "quaternionIds" ].append( "all" )
+					for n in qchanged:
+						frameData[ "quaternionData" ].append( allquaterions[ n ] )
+				elif len( qchanged ) != 0:
+					for n in qchanged:
+						frameData[ "quaternionIds" ].append( qchanged[ n ] )
+					for n in qchanged:
+						frameData[ "quaternionData" ].append( allquaterions[ n ] )
+
+			else:
+				frameData[ "positionIds" ].append( "all" )
+				for n in allpositions:
+					frameData[ "positionData" ].append( allpositions[ n ] )
+				frameData[ "quaternionIds" ].append( "all" )
+				for n in allquaterions:
+					frameData[ "quaternionData" ].append( allquaterions[ n ] )
+				
+			if JSON_OPTIMISE:
+				self.previousDFrame = {}
+				self.previousDFrame[ "positions" ] = dict( allpositions )
+				self.previousDFrame[ "quaternions" ] = dict( allquaterions )
+		
+			self.dataframes[ "data" ].append( dict( frameData ) )
+		
+		self.dataframes[ "summary" ][ "positionIds" ].sort()
+		self.dataframes[ "summary" ][ "quaternionIds" ].sort()
+		
 	def framePrint( self, json, data, frame ):
+		
+		fData = self.dataframes[ "data" ][ frame ]
+		
+		if JSON_OPTIMISE:
+			# skipping blank frames
+			if len( fData[ "positionIds" ] ) == 0 and len( fData[ "quaternionIds" ] ) == 0 and len( fData[ "scaleIds" ] ) == 0:
+				return
 		
 		endl = ""
 		tab = ""
 		if not JSON_COMPRESS:
 			endl = "\n"
 			tab = "\t"
-			
+		
 		time = frame * data.frametime * 1000.0
 		json.write("%s{%s" % ( tab, endl ) )
 		json.write("%s\"key\":%f,%s" % ( tab, time, endl ) )
+		
+		json.write("%s\"positions\":{%s" % ( tab, endl ) )
+		json.write("%s%s\"bones\":[" % ( tab,tab ))
+		for n in fData[ "positionIds" ]:
+			if type( n ) == type(str()):
+				json.write("\"%s\"," % ( n ) )
+			else:
+				json.write("%i," % ( n ) )
+		json.write("],%s" % ( endl ) )
+		json.write("%s%s\"values\":[" % ( tab,tab ) )
+		for v in fData[ "positionData" ]:
+			json.write("%f,%f,%f," % ( v.x, v.y,v.z ) )
+		json.write("],%s" % ( endl ) )
+		json.write("%s},%s" % ( tab, endl ) )
+		
+		json.write("%s\"quaternions\":{%s" % ( tab, endl ) )
+		json.write("%s%s\"bones\":[" % ( tab,tab ))
+		for n in fData[ "quaternionIds" ]:
+			if type( n ) == type(str()):
+				json.write("\"%s\"," % ( n ) )
+			else:
+				json.write("%i," % ( n ) )
+		json.write("],%s" % ( endl ) )
+		json.write("%s%s\"values\":[" % ( tab,tab ) )
+		for q in fData[ "quaternionData" ]:
+			json.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w )  )
+		json.write("],%s" % ( endl ) )
+		json.write("%s},%s" % ( tab, endl ) )
+		
+		json.write("%s\"scales\":{%s" % ( tab, endl ) )
+		json.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
+		json.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
+		json.write("%s},%s" % ( tab, endl ) )
+		
+		return
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		allpositions = {}
 		allquaterions = {}
@@ -375,12 +575,12 @@ class BvhConverter():
 			emptyv = Vector( ( 0,0,0 ) )
 			
 			for n in data.nodes:
-				if self.previousFrame is not 0:
-					if self.previousFrame[ "positions" ][ n ] != allpositions[ n ]:
+				if self.previousDFrame is not 0:
+					if self.previousDFrame[ "positions" ][ n ] != allpositions[ n ]:
 						pchanged[ n ] = i
-					if not self.compareQuats( self.previousFrame[ "quaternions" ][ n ], allquaterions[ n ] ):
+					if not self.compareQuats( self.previousDFrame[ "quaternions" ][ n ], allquaterions[ n ] ):
 						qchanged[ n ] = i
-				elif self.previousFrame is 0:
+				elif self.previousDFrame is 0:
 					if allpositions[ n ] != emptyv:
 						pchanged[ n ] = i
 					if not self.compareQuats( allquaterions[ n ], emptyq ):
@@ -468,9 +668,9 @@ class BvhConverter():
 		json.write("%s},%s" % ( tab, endl ) )
 		
 		if JSON_OPTIMISE:
-			self.previousFrame = {}
-			self.previousFrame[ "positions" ] = dict( allpositions )
-			self.previousFrame[ "quaternions" ] = dict( allquaterions )
+			self.previousDFrame = {}
+			self.previousDFrame[ "positions" ] = dict( allpositions )
+			self.previousDFrame[ "quaternions" ] = dict( allquaterions )
 		
 		json.write("%s}%s" % ( tab, endl ) )	
 	

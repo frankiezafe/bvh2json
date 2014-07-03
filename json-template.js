@@ -35,6 +35,12 @@
 		},
 	],
 	
+	"summary": {
+		"positions": [], // index of modified bones
+		"quaternions": [], // index of modified bones
+		"scales": [], // index of modified bones
+	},
+	
 	"data": [ // per key data
 		{
 			"key": 0, // time in millis
