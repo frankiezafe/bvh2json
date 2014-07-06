@@ -17,6 +17,7 @@ MiniJSON: https://gist.github.com/darktable/1411710
 TODO:
 =====
 - [done] add a "summary" in data : shows bones that are updated on position, rotation & scale
+- [IMPORTANT] reformat output, no ending comma! > json python lib can't syand them
 - add "offset" field from bvh bones description
 - reader in blender
 - reader in unity
