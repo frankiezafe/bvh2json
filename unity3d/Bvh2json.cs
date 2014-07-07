@@ -30,6 +30,11 @@ namespace Bvh2json {
 	public class B2Jkey {
 		public int kID;
 		public float timestamp;
+		// index in positions, rotations & scales is related to their bone
+		// meaning: if seeking the rotation of the bone named "A"
+		// first thing to know is its index in the B2Jrecord.bones
+		// if A.rotations_enabled is false, the Quaternion is null!!!
+		// this implies also that rotations.Count == B2Jrecord.bones.Count
 		public List<Vector3> positions;
 		public List<Quaternion> rotations;
 		public List<Vector3> scales;
@@ -44,7 +49,10 @@ namespace Bvh2json {
 		public string origin;
 		public int keyCount;
 		public List<B2Jgroup> groups;
-		public List<B2Jkey> keys;
+		// empty keys are null
+		// except for the first one (index & time = 0)
+		// keys[ 0 ] always contains all the positions, rotations & scales
+		public List<B2Jkey> keys; 
 		public List<B2Jbone> bones;
 
 	}
@@ -66,9 +74,15 @@ namespace Bvh2json {
 				return _instance;
 			}
 		}
-
+		
 		private List< B2Jhierarchy > tmphierarchies; // used to decompress hierarchy
-
+		private bool summary_p_all;
+		private List<int> summary_p; // contains the list of bones positions
+		private bool summary_q_all;
+		private List<int> summary_q;
+		private bool summary_s_all;
+		private List<int> summary_s;
+		
 		private Bvh2jsonReader() {}
 
 		public B2Jrecord load( string path ) {
@@ -89,6 +103,7 @@ namespace Bvh2json {
 
 			tmphierarchies = new List< B2Jhierarchy > ();
 			parseHierarchy ( (IList) data["hierarchy"], tmphierarchies );
+			parseSummary( (IDictionary) data["summary"] );
 
 			B2Jrecord rec = new B2Jrecord();
 			rec.type = "" + data[ "type" ];
@@ -101,30 +116,121 @@ namespace Bvh2json {
 
 			rec.groups = parseGroups( data );
 			rec.bones = parseBones( data );
+			rec.keys = parseKeys( data, rec.bones );
+
+			tmphierarchies.Clear ();
+			summary_p.Clear ();
+			summary_q.Clear ();
+			summary_s.Clear ();
+			tmphierarchies = null;
+			summary_p = null;
+			summary_q = null;
+			summary_s = null;
 
 			return rec;
 			
 		}
 
-		public B2Jbone getBoneByName( List<B2Jbone> bones, string bname ) {
-			foreach (B2Jbone bone in bones) {
-				if ( bone.name == bname ) {
-					return bone;
+// ******** PARSERS ********
+
+		private List<B2Jkey> parseKeys( IDictionary data, List<B2Jbone> bones ) {
+
+			List<B2Jkey> output = new List<B2Jkey> ();
+			IList dataks = (IList) data[ "data" ];
+			for (int i = 0; i < dataks.Count; i++) {
+				// waiting for the first key to be id 0
+				B2Jkey newk = parseKey( (IDictionary) dataks[ i ], bones );
+				if ( newk != null ) {
+					output.Add( newk );
 				}
 			}
-			return null;
-		}
+
+			return output;
 		
-		public B2Jbone getBoneById( List<B2Jbone> bones, int bId ) {
-			if (bId < 0 || bId >= bones.Count) {
-				return null;
-			}
-			return bones[ bId ];
 		}
 
-		private void parseHierarchy( IList data, List< B2Jhierarchy > holder ) {
-			for (int i = 0; i < data.Count; i++) {
-				IDictionary tmph = ( IDictionary ) data[ i ];
+		private B2Jkey parseKey( IDictionary keydata, List<B2Jbone> bones ) {
+		
+			B2Jkey newkey = new B2Jkey ();
+			newkey.kID = int.Parse ( "" + keydata ["id"] );
+			newkey.timestamp = float.Parse ( "" + keydata ["time"]);
+
+			// positions list
+			if (summary_p.Count > 0) {
+				newkey.positions = new List<Vector3> ();
+				for (int i = 0; i < bones.Count; i++) {
+					newkey.positions.Add( new Vector3( 0,0,0 ) );
+					/*
+					if ( newkey.kID == 0 && bones[ i ].positions_enabled ) {
+						newkey.positions.Add( new Vector3( 0,0,0 ) );
+					} else {
+						newkey.positions.Add( null );
+					}
+					*/
+				}
+				List<int> pIds = convertListOfIndex ((IList)((IDictionary) keydata ["positions"]) ["bones"] );
+				List<float> pValues = convertListOfFloat ((IList)((IDictionary) keydata ["positions"]) ["values"] );
+				for (int i = 0; i < pIds.Count; i++) {
+					newkey.positions[ pIds[ i ] ] = new Vector3( pValues[ i * 3 ], pValues[ i * 3 + 1 ], pValues[ i * 3 + 2 ] );
+				}
+			} else {
+				newkey.positions = null;
+			}
+
+			// rotations list
+			if (summary_q.Count > 0) {
+				newkey.rotations = new List<Quaternion> ();
+				for (int i = 0; i < bones.Count; i++) {
+					newkey.rotations.Add ( new Quaternion () );
+					/*
+					if (newkey.kID == 0 && bones [i].rotations_enabled) {
+						newkey.rotations.Add ( new Quaternion () );
+					} else {
+						newkey.rotations.Add ( null );
+					}
+					*/
+				}
+				List<int> qIds = convertListOfIndex ((IList)((IDictionary)keydata ["quaternions"]) ["bones"]);
+				List<float> qValues = convertListOfFloat ((IList)((IDictionary)keydata ["quaternions"]) ["values"]);
+				for (int i = 0; i < qIds.Count; i++) {
+					newkey.rotations [ qIds [i] ] = new Quaternion (qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3]);
+				}
+			} else {
+				newkey.rotations = null;
+			}
+			
+			// scales list
+			if (summary_s.Count > 0) {
+				newkey.scales = new List<Vector3> ();
+				for (int i = 0; i < bones.Count; i++) {
+					newkey.scales.Add (new Vector3 (1, 1, 1));
+					/*
+					if (newkey.kID == 0 && bones [i].scales_enabled) {
+						newkey.scales.Add (new Vector3 (1, 1, 1));
+					} else {
+						newkey.scales.Add ( null );
+					}
+					*/
+				}
+				List<int> sIds = convertListOfIndex ((IList)((IDictionary)keydata ["scales"]) ["bones"]);
+				List<float> sValues = convertListOfFloat ((IList)((IDictionary)keydata ["scales"]) ["values"]);
+				for (int i = 0; i < sIds.Count; i++) {
+					newkey.scales [ sIds [i] ] = new Vector3( sValues[ i * 3 ], sValues[ i * 3 + 1 ], sValues[ i * 3 + 2 ] );
+				}
+			} else {
+				newkey.scales = null;
+			}
+
+
+			return newkey;
+		
+		}
+		
+		// local method, works with tmphierarchies
+		// only available during B2Jrecord.load
+		private void parseHierarchy( IList hierarchy, List< B2Jhierarchy > holder ) {
+			for (int i = 0; i < hierarchy.Count; i++) {
+				IDictionary tmph = ( IDictionary ) hierarchy[ i ];
 				B2Jhierarchy newh = new B2Jhierarchy();
 				newh.name = "" + tmph[ "bone" ];
 				newh.children = new List<B2Jhierarchy>();
@@ -133,69 +239,43 @@ namespace Bvh2json {
 			}
 		}
 
-		private B2Jhierarchy findInHierarchy( List< B2Jhierarchy > hs, string name ) {
+		// local method, works with summary_p, etc
+		// only available during B2Jrecord.load
+		private void parseSummary( IDictionary summary ) {
 
-			foreach ( B2Jhierarchy h in hs ) {
-
-				if ( h.name == name ) {
-					return h;
-				}
-
-				B2Jhierarchy tmph = findInHierarchy( h.children, name );
-				if ( tmph != null ) {
-					return tmph;
-				}
-
-			}
-
-			return null;
-
-		}
-
-		private B2Jhierarchy findInHierarchyChilds( List< B2Jhierarchy > hs, string name ) {
-
-			B2Jhierarchy tmph;
-			foreach ( B2Jhierarchy h in hs ) {
-				tmph = findInHierarchyChilds( h.children, name );
-				if ( tmph != null ) {
-					return tmph;
-				}
-				tmph = findInHierarchy( h.children, name );
-				if ( tmph != null ) {
-					return h;
-				}
-			}
-
-			return null;
-			
-		}
-
-		private List<B2Jbone> parseBones( IDictionary data ) {
-		
 			// parsing summary first, will make our life easier
 			// when parsing bones
-
-			bool summary_p_all = false;
-			List<int> summary_p = convertListOfIndex( ( IList ) (( IDictionary ) data[ "summary" ])[ "positions" ] );
+			
+			summary_p_all = false;
+			summary_p = convertListOfIndex( ( IList ) summary[ "positions" ] );
 			if ( summary_p.Count > 0 && summary_p[ 0 ] == -1 ) {
 				summary_p.Clear();
 				summary_p_all = true;
 			}
-
-			bool summary_q_all = false;
-			List<int> summary_q = convertListOfIndex( ( IList ) (( IDictionary ) data[ "summary" ])[ "quaternions" ] );
+			
+			summary_q_all = false;
+			summary_q = convertListOfIndex( ( IList ) summary[ "quaternions" ] );
 			if ( summary_q.Count > 0 && summary_q[ 0 ] == -1 ) {
 				summary_q.Clear();
 				summary_q_all = true;
 			}
-
-			bool summary_s_all = false;
-			List<int> summary_s = convertListOfIndex( ( IList ) (( IDictionary ) data[ "summary" ])[ "scales" ] );
+			
+			summary_s_all = false;
+			summary_s = convertListOfIndex( ( IList ) summary[ "scales" ] );
 			if ( summary_s.Count > 0 && summary_s[ 0 ] == -1 ) {
 				summary_s.Clear();
 				summary_s_all = true;
 			}
 
+		}
+
+		// very important!
+		// at the end of theis method, summaries will be adapted if they are flagged "all"
+		// this will make the work on the key level a bit faster
+		// !!! => this must be done BEFORE parsing keys 
+		private List<B2Jbone> parseBones( IDictionary data ) {
+
+			// basic list of bones
 			List<B2Jbone> output = new List<B2Jbone> ();
 			IList dbs = ( IList ) data[ "list" ];
 			for ( int i = 0; i < dbs.Count; i++ ) {
@@ -219,6 +299,7 @@ namespace Bvh2json {
 				output.Add( newb );
 			}
 
+			// rebuilding hierarchy
 			B2Jbone tmpb;
 			B2Jhierarchy h;
 			foreach ( B2Jbone bone in output ) {
@@ -238,6 +319,30 @@ namespace Bvh2json {
 				}
 			}
 
+			// adapting summaries lists
+			if ( summary_p_all || summary_q_all || summary_s_all ) {
+				if ( summary_p_all ) {
+					summary_p.Clear();
+				}
+				if ( summary_q_all ) {
+					summary_q.Clear();
+				}
+				if ( summary_s_all ) {
+					summary_s.Clear();
+				}
+				for ( int i = 0; i < output.Count; i++ ) {
+					if ( summary_p_all ) {
+						summary_p.Add( i );
+					}
+					if ( summary_q_all ) {
+						summary_q.Add( i );
+					}
+					if ( summary_s_all ) {
+						summary_s.Add( i );
+					}
+				}
+			}
+
 			return output;
 
 		}
@@ -245,7 +350,6 @@ namespace Bvh2json {
 		private List<B2Jgroup> parseGroups( IDictionary data ) {
 
 			List<B2Jgroup> output = new List<B2Jgroup> ();
-
 			IList dgps = ( IList ) data[ "groups" ];
 			for ( int i = 0; i < dgps.Count; i++ ) {
 				IDictionary gp = ( IDictionary ) dgps[ i ];
@@ -269,6 +373,46 @@ namespace Bvh2json {
 
 		}
 
+		private int getIndexInSummary( IList<int> summary, int id ) {
+
+			for( int i = 0; i < summary.Count; i++ ) {
+				if ( id == summary[ i ] ) {
+					return i;
+				}
+			}
+			return -1;
+			
+		}
+
+
+		private B2Jhierarchy findInHierarchy( List< B2Jhierarchy > hs, string name ) {
+			foreach ( B2Jhierarchy h in hs ) {
+				if ( h.name == name ) {
+					return h;
+				}
+				B2Jhierarchy tmph = findInHierarchy( h.children, name );
+				if ( tmph != null ) {
+					return tmph;
+				}
+			}
+			return null;
+		}
+		
+		private B2Jhierarchy findInHierarchyChilds( List< B2Jhierarchy > hs, string name ) {
+			B2Jhierarchy tmph;
+			foreach ( B2Jhierarchy h in hs ) {
+				tmph = findInHierarchyChilds( h.children, name );
+				if ( tmph != null ) {
+					return tmph;
+				}
+				tmph = findInHierarchy( h.children, name );
+				if ( tmph != null ) {
+					return h;
+				}
+			}
+			return null;
+		}
+
 		public List<int> convertListOfIndex( IList _list ) {
 
 			List<int> output = new List<int>();
@@ -281,6 +425,32 @@ namespace Bvh2json {
 			}
 			return output;
 
+		}
+
+		public List<float> convertListOfFloat( IList _list ) {
+			
+			List<float> output = new List<float>();
+			for (int i = 0; i < _list.Count; i++) {
+				output.Add ( float.Parse ( "" + _list [i] ) );
+			}
+			return output;
+			
+		}
+
+		public B2Jbone getBoneByName( List<B2Jbone> bones, string bname ) {
+			foreach (B2Jbone bone in bones) {
+				if ( bone.name == bname ) {
+					return bone;
+				}
+			}
+			return null;
+		}
+		
+		public B2Jbone getBoneById( List<B2Jbone> bones, int bId ) {
+			if (bId < 0 || bId >= bones.Count) {
+				return null;
+			}
+			return bones[ bId ];
 		}
 
 	}
@@ -309,12 +479,14 @@ namespace Bvh2json {
 				}
 				for ( int i = 0; i < br.bones.Count; i++ ) {
 					Debug.Log ( "bone[" + i + "] = " + br.bones[ i ].name + " (" + br.bones[ i ].positions_enabled + "," +  br.bones[ i ].rotations_enabled  + "," +  br.bones[ i ].scales_enabled + ")" );
+					/*
 					if ( br.bones[ i ].parent != null ) {
-						Debug.Log ( "--parent:" + br.bones[ i ].parent.name );
+						Debug.Log ( "\t\tparent:" + br.bones[ i ].parent.name );
 					}
 					foreach( B2Jbone child in br.bones[ i ].children ) {
-						Debug.Log ( "--child:" + child.name );
+						Debug.Log ( "\t\tchild:" + child.name );
 					}
+					*/
 
 				}
 				Debug.Log ("BVH2JSON************");
