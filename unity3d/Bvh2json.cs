@@ -490,6 +490,25 @@ namespace B2J {
 
 		}
 
+		/*
+		private IEnumerator loader() {
+		
+			if ( loadingpath == null ) {
+				Debug.Log ( "FUCK!" );
+				yield return true;
+			}
+
+			while ( loadingpath.Count > 0 ) {
+				string path = loadingpath[ 0 ];
+				loadingpath.Remove( path );
+				addNewRecord( B2Jparser.Instance.load ( path ) );
+			}
+
+			yield return true;
+
+		}
+		*/
+
 		public void addNewRecord( B2Jrecord rec ) {
 
 			if ( rec != null ) {
