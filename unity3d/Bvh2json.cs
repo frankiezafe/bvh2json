@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
+using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
 
 using MiniJSON;
 
-namespace Bvh2json {
+namespace B2J {
 
 	#region data objects definition
 
@@ -33,7 +34,7 @@ namespace Bvh2json {
 		// index in positions, rotations & scales is related to their bone
 		// meaning: if seeking the rotation of the bone named "A"
 		// first thing to know is its index in the B2Jrecord.bones
-		// if A.rotations_enabled is false, the Quaternion is null!!!
+		// if A.rotations_enabled is false, the Quaternion is default
 		// this implies also that rotations.Count == B2Jrecord.bones.Count
 		public List<Vector3> positions;
 		public List<Quaternion> rotations;
@@ -65,11 +66,11 @@ namespace Bvh2json {
 	#endregion
 
 	#region reader definition
-	public sealed class Bvh2jsonReader {
+	public sealed class B2Jparser {
 
-		static readonly Bvh2jsonReader _instance = new Bvh2jsonReader();
+		static readonly B2Jparser _instance = new B2Jparser();
 
-		public static Bvh2jsonReader Instance {
+		public static B2Jparser Instance {
 			get {
 				return _instance;
 			}
@@ -83,7 +84,7 @@ namespace Bvh2json {
 		private bool summary_s_all;
 		private List<int> summary_s;
 		
-		private Bvh2jsonReader() {}
+		private B2Jparser() {}
 
 		public B2Jrecord load( string path ) {
 			
@@ -130,8 +131,6 @@ namespace Bvh2json {
 			return rec;
 			
 		}
-
-// ******** PARSERS ********
 
 		private List<B2Jkey> parseKeys( IDictionary data, List<B2Jbone> bones ) {
 
@@ -456,14 +455,47 @@ namespace Bvh2json {
 	}
 	#endregion
 
-	public class Bvh2json : MonoBehaviour {
+	#region server definition
+	public class B2Jserver {
 
+		static readonly B2Jserver _instance = new B2Jserver();
+		
+		public static B2Jserver Instance {
+			get {
+				return _instance;
+			}
+		}
+
+		private List<string> loadedpath;
+		private List<string> loadingpath;
 		private List<B2Jrecord> records;
 
-		public void Start () {
+		private B2Jserver() {
 
-			B2Jrecord newrec = Bvh2jsonReader.Instance.load ( "bvh2json/ariaII_02" );
-			printRecord ( newrec );
+			loadedpath = new List<string> ();
+			loadingpath = new List<string> ();
+			records = new List<B2Jrecord> ();
+
+		}
+
+		public void load( string path ) {
+
+			if ( loadedpath.Contains ( path ) ) {
+				Debug.Log ( "'" + path + "' already loaded" );
+				return;
+			}
+
+			loadedpath.Add( path );
+			addNewRecord( B2Jparser.Instance.load ( path ) );
+
+		}
+
+		public void addNewRecord( B2Jrecord rec ) {
+
+			if ( rec != null ) {
+				records.Add( rec );
+				Debug.Log ( "new record added: " + rec.name + ", " + records.Count + " record(s) loaded" );
+			}
 
 		}
 
@@ -479,22 +511,22 @@ namespace Bvh2json {
 				}
 				for ( int i = 0; i < br.bones.Count; i++ ) {
 					Debug.Log ( "bone[" + i + "] = " + br.bones[ i ].name + " (" + br.bones[ i ].positions_enabled + "," +  br.bones[ i ].rotations_enabled  + "," +  br.bones[ i ].scales_enabled + ")" );
-					/*
 					if ( br.bones[ i ].parent != null ) {
 						Debug.Log ( "\t\tparent:" + br.bones[ i ].parent.name );
 					}
 					foreach( B2Jbone child in br.bones[ i ].children ) {
 						Debug.Log ( "\t\tchild:" + child.name );
 					}
-					*/
 
+				}
+				for ( int i = 0; i < br.keys.Count; i++ ) {
+					Debug.Log ( "key[" + i + "] = " + br.keys[ i ].kID + " / " + br.keys[ i ].timestamp );
 				}
 				Debug.Log ("BVH2JSON************");
 			}
 		}
 
-		public void Update () {}
-
 	}
+	#endregion
 
 }
