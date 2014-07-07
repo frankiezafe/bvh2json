@@ -8,7 +8,7 @@
 	"model": "bvh_numediart", // ULTRA important for mapping!!! each file with same model will have the same bones names & hierarchy
 	"origin": "file.bvh", // original file
 	"keys": 200, // number of keys in the file
-	"dropped_keys": 0, // number of blank keys in the original file
+	"empty_keys": 0, // number of blank keys in the original file
 	"groups": [ // groups of keys, used as sequences
 		{ "name": "start", "in": 0, "out": 20, "kin": -1, "kout": -1 }, // in & out: time in millis
 		{ "name": "walk", "in": -1, "out": -1, "kin": 6, "kout": 25 }, // kin & kout: key index
@@ -44,7 +44,8 @@
 	
 	"data": [ // per key data
 		{
-			"key": 0, // time in millis
+			"id": 0,
+			"time": 0, // time in millis
 			"positions":  {
 				"bones": [ "all" ], // key contains all positions values
 				"values": [ 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, ]
@@ -55,11 +56,12 @@
 			}, // X Y Z order
 			"quaternions": {
 				"bones": [ "all" ], // key contains all quaternions values
-				"values" : [ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, ], // X Y Z W order!
+				"values" : [ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, ], // W X Y Z order!
 			}
 		},
 		{
-			"key": 15, // time in millis
+			"id": 1,
+			"time": 15, // time in millis
 			"positions":  {
 				"bones": [],
 				"values": []
@@ -70,7 +72,7 @@
 			}, // X Y Z order
 			"quaternions": {
 				"bones": [ 0, 1 ], // key contains quaternions for bones 0 & 1 -> "hips" & "spine"
-				"values" : [ 0,0,0,0, 0,0,0,0, ], // X Y Z W order!
+				"values" : [ 0,0,0,0, 0,0,0,0, ], // W X Y Z order!
 			}
 		},
 	],

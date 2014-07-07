@@ -3,17 +3,19 @@ from math import radians
 from mathutils import Vector, Euler, Matrix, Quaternion
 from collections import OrderedDict
 import locale
+import json
 
 JSON_TYPE = "data"
 JSON_VERSION = "0.0"
 JSON_DESC = "generated with bvh2json.py - frankiezafe - july 2014"
 JSON_MODEL = "bvh_numediart"
-JSON_COMPRESS = False
+JSON_COMPRESS = True
 JSON_OPTIMISE = True
 
 bvhlist = [ 
-		# [ "miko_ariaII02", "//bvhs/ariaII_02.bvh" ],
-		[ "test", "//bvhs/test.bvh" ],
+		[ "miko_ariaII02", "//bvhs/ariaII_02.bvh" ],
+		["clavaeolina_01", "//bvhs/clavaeolina_01.bvh" ],
+		[ "test", "//bvhs/test.bvh" ]
 ]
 
 class BvhNode(object):
@@ -299,7 +301,7 @@ class BvhConverter():
 		
 		jpath = fpath[ 0:-4 ]+".json"
 		jpath = bpy.path.abspath( jpath )
-		json = open( jpath, 'w' )
+		jsonf = open( jpath, 'w' )
 		
 		# collecting data
 		self.dataframes = {}
@@ -309,6 +311,47 @@ class BvhConverter():
 		self.previousDFrame = 0
 		self.collectFrames( data )
 		
+		jsonData = {}
+		jsonData[ "type" ] = JSON_TYPE
+		jsonData[ "version" ] = JSON_VERSION
+		jsonData[ "model" ] = JSON_MODEL
+		jsonData[ "desc" ] = JSON_DESC
+		jsonData[ "name" ] = data.name
+		jsonData[ "origin" ] = fpath
+		jsonData[ "keys" ] = data.maxframe
+		if self.dataframes[ "framescount" ] != data.maxframe:
+			jsonData[ "empty_keys" ] = ( data.maxframe - self.dataframes[ "framescount" ])
+		jsonData[ "groups" ] = []
+		jsonData[ "groups" ].append( { "name":"default", "in":-1, "out":-1, "kin":0, "kout":data.maxframe } )
+		jsonData[ "list" ] = []
+		for i in data.nodes:
+			jsonData[ "list" ].append( data.nodes[ i ].name )
+
+		jsonData[ "hierarchy" ] = []
+		roots = self.seekOrigins( data.nodes )
+		for r in roots:
+			jsonData[ "hierarchy" ].append( self.hierarchyData( r ) )
+		
+		jsonData[ "summary" ] = {}
+		jsonData[ "summary" ][ "positions" ] = list( self.dataframes[ "summary" ][ "positions" ]["bones"] )
+		jsonData[ "summary" ][ "quaternions" ] = list( self.dataframes[ "summary" ][ "quaternions" ]["bones"] )
+		jsonData[ "summary" ][ "scales" ] = list( self.dataframes[ "summary" ][ "scales" ]["bones"] )
+		
+		jsonData[ "data" ] = []
+		for fd in self.dataframes[ "data" ]:
+			if "EMPTY" not in fd:
+				jsonData[ "data" ].append( fd )
+		
+		jstr = ""
+		if not JSON_COMPRESS:
+			jstr = json.dumps( jsonData, indent=2, sort_keys=True, separators=(',',':') )
+		else:
+			jstr = json.dumps( jsonData, sort_keys=True, separators=(',',':') )
+		jsonf.write( jstr )
+		jsonf.close()
+		
+		return
+		
 		endl = ""
 		tab = ""
 		if not JSON_COMPRESS:
@@ -316,57 +359,57 @@ class BvhConverter():
 			tab = "\t"
 		
 		# printing header
-		json.write("{%s" % ( endl ) )
-		json.write("\"type\":\"%s\",%s" % ( JSON_TYPE, endl ) )
-		json.write("\"version\":%s,%s" % ( JSON_VERSION, endl ) )
-		json.write("\"model\":\"%s\",%s" % ( JSON_MODEL, endl ) )
-		json.write("\"desc\":\"%s\",%s" % ( JSON_DESC, endl ) )
-		json.write("\"name\":\"%s\",%s" % ( data.name, endl ) )
-		json.write("\"origin\":\"%s\",%s" % ( fpath, endl ) )
-		json.write("\"keys\":%i,%s" % ( self.dataframes[ "framescount" ], endl ) )
+		jsonf.write("{%s" % ( endl ) )
+		jsonf.write("\"type\":\"%s\",%s" % ( JSON_TYPE, endl ) )
+		jsonf.write("\"version\":%s,%s" % ( JSON_VERSION, endl ) )
+		jsonf.write("\"model\":\"%s\",%s" % ( JSON_MODEL, endl ) )
+		jsonf.write("\"desc\":\"%s\",%s" % ( JSON_DESC, endl ) )
+		jsonf.write("\"name\":\"%s\",%s" % ( data.name, endl ) )
+		jsonf.write("\"origin\":\"%s\",%s" % ( fpath, endl ) )
+		jsonf.write("\"keys\":%i,%s" % ( self.dataframes[ "framescount" ], endl ) )
 		if self.dataframes[ "framescount" ] != data.maxframe:
-			json.write("\"dropped_keys\":%i,%s" % ( data.maxframe - self.dataframes[ "framescount" ], endl ) )
-		json.write("\"groups\":[%s%s{ \"name\":\"default\", \"in\":-1, \"out\":-1, \"kin\":%i, \"kout\":%i, },%s],%s" % ( endl, tab, 0, data.maxframe, endl, endl ) )
-		json.write("\"list\":[%s" % ( endl ) )
+			jsonf.write("\"dropped_keys\":%i,%s" % ( data.maxframe - self.dataframes[ "framescount" ], endl ) )
+		jsonf.write("\"groups\":[%s%s{ \"name\":\"default\", \"in\":-1, \"out\":-1, \"kin\":%i, \"kout\":%i, },%s],%s" % ( endl, tab, 0, data.maxframe, endl, endl ) )
+		jsonf.write("\"list\":[%s" % ( endl ) )
 		for i in data.nodes:
-			json.write( "%s\"%s\",%s" % ( tab, data.nodes[ i ].name, endl ) )
-		json.write("],%s" % ( endl ) )
+			jsonf.write( "%s\"%s\",%s" % ( tab, data.nodes[ i ].name, endl ) )
+		jsonf.write("],%s" % ( endl ) )
 		
-		json.write("\"hierarchy\":[%s" % ( endl ) )
+		jsonf.write("\"hierarchy\":[%s" % ( endl ) )
 		roots = self.seekOrigins( data.nodes )
 		for r in roots:
 			self.hierarchyPrint( json, r, 0 )
-		json.write("],%s" % ( endl ) )
+		jsonf.write("],%s" % ( endl ) )
 		
 		# writting summary
-		json.write("\"summary\":{%s" % ( endl ) )
-		json.write("%s\"positions\":[" % ( tab ) )
+		jsonf.write("\"summary\":{%s" % ( endl ) )
+		jsonf.write("%s\"positions\":[" % ( tab ) )
 		for n in self.dataframes[ "summary" ][ "positionIds" ]:
 			if type( n ) == type(str()):
-				json.write("\"%s\"," % ( n ) )
+				jsonf.write("\"%s\"," % ( n ) )
 			else:
-				json.write("%i," % ( n ) )
-		json.write("],%s" % ( endl ) )
-		json.write("%s\"quaternions\":[" % ( tab ) )
+				jsonf.write("%i," % ( n ) )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("%s\"quaternions\":[" % ( tab ) )
 		for n in self.dataframes[ "summary" ][ "quaternionIds" ]:
 			if type( n ) == type(str()):
-				json.write("\"%s\"," % ( n ) )
+				jsonf.write("\"%s\"," % ( n ) )
 			else:
-				json.write("%i," % ( n ) )
-		json.write("],%s" % ( endl ) )
-		json.write("%s\"scales\":[" % ( tab ) )
+				jsonf.write("%i," % ( n ) )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("%s\"scales\":[" % ( tab ) )
 		for n in self.dataframes[ "summary" ][ "scaleIds" ]:
-			json.write("%s," % ( n ) )
-		json.write("],%s" % ( endl ) )
-		json.write("},%s" % ( endl ) )
+			jsonf.write("%s," % ( n ) )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("},%s" % ( endl ) )
 
-		json.write("\"data\":[%s" % ( endl ) )
+		jsonf.write("\"data\":[%s" % ( endl ) )
 		for i in range( len( self.dataframes[ "data" ] ) ):
 			self.framePrint( json, data, i )
-		json.write("],%s" % ( endl ) )
+		jsonf.write("],%s" % ( endl ) )
 		
-		json.write("}")
-		json.close()
+		jsonf.write("}")
+		jsonf.close()
 		
 		del self.dataframes
 		del self.previousDFrame
@@ -383,12 +426,17 @@ class BvhConverter():
 	
 	def newFrameData( self ):
 		fData = {}
-		fData[ "positionIds" ] = []
-		fData[ "positionData" ] = []
-		fData[ "quaternionIds" ] = []
-		fData[ "quaternionData" ] = []
-		fData[ "scaleIds" ] = []
-		fData[ "scaleData" ] = []
+		fData[ "time" ] = 0
+		fData[ "id" ] = 0
+		fData[ "positions" ] = {}
+		fData[ "positions" ]["bones"] = []
+		fData[ "positions" ]["values"] = []
+		fData[ "quaternions" ] = {}
+		fData[ "quaternions" ]["bones"] = []
+		fData[ "quaternions" ]["values"] = []
+		fData[ "scales" ] = {}
+		fData[ "scales" ]["bones"] = []
+		fData[ "scales" ]["values"] = []
 		return fData
 	
 	def collectFrames( self, data ):
@@ -396,8 +444,8 @@ class BvhConverter():
 		self.dataframes[ "framescount" ] = data.maxframe
 		
 		if not JSON_OPTIMISE:
-			self.dataframes[ "summary" ][ "positionIds" ].append( "all" )
-			self.dataframes[ "summary" ][ "quaternionIds" ].append( "all" )
+			self.dataframes[ "summary" ][ "positions" ]["bones"].append( "all" )
+			self.dataframes[ "summary" ][ "quaternions" ]["bones"].append( "all" )
 			# NO SCALING
 		
 		for frame in range( int( data.maxframe ) ):
@@ -406,6 +454,8 @@ class BvhConverter():
 			allquaterions = {}
 			
 			frameData = self.newFrameData()
+			frameData[ "time" ] = frame * data.frametime * 1000.0
+			frameData[ "id" ] = frame
 			
 			for n in data.nodes:
 			
@@ -444,48 +494,63 @@ class BvhConverter():
 				# adding new bones that have changed in the summary
 				for n in pchanged:
 					found = False
-					for nId in self.dataframes[ "summary" ][ "positionIds" ]:
+					for nId in self.dataframes[ "summary" ][ "positions" ]["bones"]:
 						if nId == pchanged[ n ]:
 							found = True
 							break
 					if not found:
-						self.dataframes[ "summary" ][ "positionIds" ].append( pchanged[ n ] )
+						self.dataframes[ "summary" ][ "positions" ]["bones"].append( pchanged[ n ] )
 				for n in qchanged:
 					found = False
-					for nId in self.dataframes[ "summary" ][ "quaternionIds" ]:
+					for nId in self.dataframes[ "summary" ][ "quaternions" ]["bones"]:
 						if nId == qchanged[ n ]:
 							found = True
 							break
 					if not found:
-						self.dataframes[ "summary" ][ "quaternionIds" ].append( qchanged[ n ] )			
+						self.dataframes[ "summary" ][ "quaternions" ]["bones"].append( qchanged[ n ] )			
 			
 				if len( pchanged ) == len( data.nodes ):
-					frameData[ "positionIds" ].append( "all" )
+					frameData[ "positions" ]["bones"].append( "all" )
 					for n in pchanged:
-						frameData[ "positionData" ].append( allpositions[ n ] )
+						frameData[ "positions" ]["values"].append( allpositions[ n ].x )
+						frameData[ "positions" ]["values"].append( allpositions[ n ].y )
+						frameData[ "positions" ]["values"].append( allpositions[ n ].z )
 				elif len( pchanged ) != 0:
 					for n in pchanged:
-						frameData[ "positionIds" ].append( pchanged[ n ] )
+						frameData[ "positions" ]["bones"].append( pchanged[ n ] )
 					for n in pchanged:
-						frameData[ "positionData" ].append( allpositions[ n ] )
+						frameData[ "positions" ]["values"].append( allpositions[ n ].x )
+						frameData[ "positions" ]["values"].append( allpositions[ n ].y )
+						frameData[ "positions" ]["values"].append( allpositions[ n ].z )
 				
 				if len( qchanged ) == len( data.nodes ):
-					frameData[ "quaternionIds" ].append( "all" )
+					frameData[ "quaternions" ]["bones"].append( "all" )
 					for n in qchanged:
-						frameData[ "quaternionData" ].append( allquaterions[ n ] )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
 				elif len( qchanged ) != 0:
 					for n in qchanged:
-						frameData[ "quaternionIds" ].append( qchanged[ n ] )
+						frameData[ "quaternions" ]["bones"].append( qchanged[ n ] )
 					for n in qchanged:
-						frameData[ "quaternionData" ].append( allquaterions[ n ] )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
 
 			else:
-				frameData[ "positionIds" ].append( "all" )
+				frameData[ "positions" ]["bones"].append( "all" )
 				for n in allpositions:
-					frameData[ "positionData" ].append( allpositions[ n ] )
-				frameData[ "quaternionIds" ].append( "all" )
+					frameData[ "positions" ]["values"].append( allpositions[ n ].x )
+					frameData[ "positions" ]["values"].append( allpositions[ n ].y )
+					frameData[ "positions" ]["values"].append( allpositions[ n ].z )
+				frameData[ "quaternions" ]["bones"].append( "all" )
 				for n in allquaterions:
-					frameData[ "quaternionData" ].append( allquaterions[ n ] )
+					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
+					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
+					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
+					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
 				
 			if JSON_OPTIMISE:
 				self.previousDFrame = {}
@@ -494,16 +559,18 @@ class BvhConverter():
 		
 			self.dataframes[ "data" ].append( dict( frameData ) )
 		
-		self.dataframes[ "summary" ][ "positionIds" ].sort()
-		self.dataframes[ "summary" ][ "quaternionIds" ].sort()
+		self.dataframes[ "summary" ][ "positions" ]["bones"].sort()
+		self.dataframes[ "summary" ][ "quaternions" ]["bones"].sort()
 		
 		if JSON_OPTIMISE:
 			self.dataframes[ "framescount" ] = 0
 			for d in self.dataframes[ "data" ]:
-				if len( d[ "positionIds" ] ) != 0 or len( d[ "quaternionIds" ] ) != 0 or len( d[ "scaleIds" ] ) != 0:
+				if len( d[ "positions" ]["bones"] ) != 0 or len( d[ "quaternions" ]["bones"] ) != 0 or len( d[ "scales" ]["bones"] ) != 0:
 					self.dataframes[ "framescount" ] += 1
+				else:
+					d["EMPTY"] = True
 		
-	def framePrint( self, json, data, frame ):
+	def framePrint( self, jsonf, data, frame ):
 		
 		fData = self.dataframes[ "data" ][ frame ]
 		
@@ -522,43 +589,43 @@ class BvhConverter():
 		
 		time = frame * data.frametime * 1000.0
 		
-		json.write("%s{%s" % ( tab, endl ) )
+		jsonf.write("%s{%s" % ( tab, endl ) )
 		
-		json.write("%s\"key\":%f,%s" % ( tab2, time, endl ) )
-		json.write("%s\"positions\":{%s" % ( tab2, endl ) )
-		json.write("%s%s\"bones\":[" % ( tab2,tab ))
+		jsonf.write("%s\"key\":%f,%s" % ( tab2, time, endl ) )
+		jsonf.write("%s\"positions\":{%s" % ( tab2, endl ) )
+		jsonf.write("%s%s\"bones\":[" % ( tab2,tab ))
 		for n in fData[ "positionIds" ]:
 			if type( n ) == type(str()):
-				json.write("\"%s\"," % ( n ) )
+				jsonf.write("\"%s\"," % ( n ) )
 			else:
-				json.write("%i," % ( n ) )
-		json.write("],%s" % ( endl ) )
-		json.write("%s%s\"values\":[" % ( tab2,tab ) )
+				jsonf.write("%i," % ( n ) )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("%s%s\"values\":[" % ( tab2,tab ) )
 		for v in fData[ "positionData" ]:
-			json.write("%f,%f,%f," % ( v.x, v.y,v.z ) )
-		json.write("],%s" % ( endl ) )
-		json.write("%s},%s" % ( tab2, endl ) )
+			jsonf.write("%f,%f,%f," % ( v.x, v.y,v.z ) )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("%s},%s" % ( tab2, endl ) )
 		
-		json.write("%s\"quaternions\":{%s" % ( tab2, endl ) )
-		json.write("%s%s\"bones\":[" % ( tab2,tab ))
+		jsonf.write("%s\"quaternions\":{%s" % ( tab2, endl ) )
+		jsonf.write("%s%s\"bones\":[" % ( tab2,tab ))
 		for n in fData[ "quaternionIds" ]:
 			if type( n ) == type(str()):
-				json.write("\"%s\"," % ( n ) )
+				jsonf.write("\"%s\"," % ( n ) )
 			else:
-				json.write("%i," % ( n ) )
-		json.write("],%s" % ( endl ) )
-		json.write("%s%s\"values\":[" % ( tab2,tab ) )
+				jsonf.write("%i," % ( n ) )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("%s%s\"values\":[" % ( tab2,tab ) )
 		for q in fData[ "quaternionData" ]:
-			json.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w )  )
-		json.write("],%s" % ( endl ) )
-		json.write("%s},%s" % ( tab2, endl ) )
+			jsonf.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w )  )
+		jsonf.write("],%s" % ( endl ) )
+		jsonf.write("%s},%s" % ( tab2, endl ) )
 		
-		json.write("%s\"scales\":{%s" % ( tab2, endl ) )
-		json.write("%s%s\"bones\":[],%s" % ( tab2,tab,endl ) )
-		json.write("%s%s\"values\":[],%s" % ( tab2,tab,endl ) )
-		json.write("%s},%s" % ( tab2, endl ) )
+		jsonf.write("%s\"scales\":{%s" % ( tab2, endl ) )
+		jsonf.write("%s%s\"bones\":[],%s" % ( tab2,tab,endl ) )
+		jsonf.write("%s%s\"values\":[],%s" % ( tab2,tab,endl ) )
+		jsonf.write("%s},%s" % ( tab2, endl ) )
 		
-		json.write("%s},%s" % ( tab, endl ) )
+		jsonf.write("%s},%s" % ( tab, endl ) )
 		
 		return
 		
@@ -606,88 +673,98 @@ class BvhConverter():
 			pchanged = self.sortDict( pchanged )
 			qchanged = self.sortDict( qchanged )
 			
-			json.write("%s\"positions\":{%s" % ( tab, endl ) )
+			jsonf.write("%s\"positions\":{%s" % ( tab, endl ) )
 			if len( pchanged ) == 0:
-				json.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
-				json.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
+				jsonf.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
+				jsonf.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
 			elif len( pchanged ) == len( data.nodes ):
-				json.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
-				json.write("%s%s\"values\":[" % ( tab,tab ) )
+				jsonf.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
+				jsonf.write("%s%s\"values\":[" % ( tab,tab ) )
 				for n in pchanged:
 					d = allpositions[ n ]
-					json.write("%f,%f,%f," % ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
-				json.write("],%s" % ( endl ) )
+					jsonf.write("%f,%f,%f," % ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
+				jsonf.write("],%s" % ( endl ) )
 			else:
-				json.write("%s%s\"bones\":[" % ( tab,tab ))
+				jsonf.write("%s%s\"bones\":[" % ( tab,tab ))
 				for n in pchanged:
-					json.write( "%i," % ( pchanged[ n ] ) )
-				json.write("],%s" % ( endl ) )
-				json.write("%s%s\"values\":[" % ( tab,tab ) )
+					jsonf.write( "%i," % ( pchanged[ n ] ) )
+				jsonf.write("],%s" % ( endl ) )
+				jsonf.write("%s%s\"values\":[" % ( tab,tab ) )
 				for n in pchanged:
 					d = allpositions[ n ]
-					json.write("%f,%f,%f," % ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
-				json.write("],%s" % ( endl ) )
-			json.write("%s},%s" % ( tab, endl ) )
+					jsonf.write("%f,%f,%f," % ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
+				jsonf.write("],%s" % ( endl ) )
+			jsonf.write("%s},%s" % ( tab, endl ) )
 			
-			json.write("%s\"quaternions\":{%s" % ( tab, endl ) )
+			jsonf.write("%s\"quaternions\":{%s" % ( tab, endl ) )
 			if len( qchanged ) == 0:
-				json.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
-				json.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
+				jsonf.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
+				jsonf.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
 			elif len( qchanged ) == len( data.nodes ):
-				json.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
-				json.write("%s%s\"values\":[" % ( tab,tab ) )
+				jsonf.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
+				jsonf.write("%s%s\"values\":[" % ( tab,tab ) )
 				for n in qchanged:
 					q = allquaterions[ n ]
-					json.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w ) )
-				json.write("],%s" % ( endl ) )
+					jsonf.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w ) )
+				jsonf.write("],%s" % ( endl ) )
 			else:
-				json.write("%s%s\"bones\":[" % ( tab,tab ))
+				jsonf.write("%s%s\"bones\":[" % ( tab,tab ))
 				for n in qchanged:
-					json.write( "%i," % ( qchanged[ n ] ) )
-				json.write("],%s" % ( endl ) )
-				json.write("%s%s\"values\":[" % ( tab,tab ) )
+					jsonf.write( "%i," % ( qchanged[ n ] ) )
+				jsonf.write("],%s" % ( endl ) )
+				jsonf.write("%s%s\"values\":[" % ( tab,tab ) )
 				for n in qchanged:
 					q = allquaterions[ n ]
-					json.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w ) )
-				json.write("],%s" % ( endl ) )
+					jsonf.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w ) )
+				jsonf.write("],%s" % ( endl ) )
 				
-			json.write("%s},%s" % ( tab, endl ) )
+			jsonf.write("%s},%s" % ( tab, endl ) )
 			
 			# print( "frame:", frame, len( pchanged ), len( qchanged ) )
 			
 		else:
-			json.write("%s\"positions\":{%s" % ( tab, endl ) )
-			json.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
-			json.write("%s%s\"values\":[" % ( tab,tab ) )
+			jsonf.write("%s\"positions\":{%s" % ( tab, endl ) )
+			jsonf.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
+			jsonf.write("%s%s\"values\":[" % ( tab,tab ) )
 			for n in data.nodes:
 				d = allpositions[ n ]
-				json.write("%f,%f,%f," % ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
-			json.write("%s]%s" % ( tab, endl ) )
-			json.write("%s},%s" % ( tab, endl ) )
+				jsonf.write("%f,%f,%f," % ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
+			jsonf.write("%s]%s" % ( tab, endl ) )
+			jsonf.write("%s},%s" % ( tab, endl ) )
 			
-			json.write("%s\"quaternions\":{%s" % ( tab, endl ) )
-			json.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
-			json.write("%s%s\"values\":[" % ( tab,tab ) )
+			jsonf.write("%s\"quaternions\":{%s" % ( tab, endl ) )
+			jsonf.write("%s%s\"bones\":[\"all\"],%s" % ( tab,tab,endl ) )
+			jsonf.write("%s%s\"values\":[" % ( tab,tab ) )
 			for n in data.nodes:
 				node = data.nodes[ n ]
 				q = allquaterions[ n ]
-				json.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w ) )
-			json.write("%s]%s" % ( tab, endl ) )
-			json.write("%s},%s" % (  tab, endl ) )
+				jsonf.write("%f,%f,%f,%f," % ( q.x, q.y, q.z, q.w ) )
+			jsonf.write("%s]%s" % ( tab, endl ) )
+			jsonf.write("%s},%s" % (  tab, endl ) )
 		
-		json.write("%s\"scales\":{%s" % ( tab, endl ) )
-		json.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
-		json.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
-		json.write("%s},%s" % ( tab, endl ) )
+		jsonf.write("%s\"scales\":{%s" % ( tab, endl ) )
+		jsonf.write("%s%s\"bones\":[],%s" % ( tab,tab,endl ) )
+		jsonf.write("%s%s\"values\":[],%s" % ( tab,tab,endl ) )
+		jsonf.write("%s},%s" % ( tab, endl ) )
 		
 		if JSON_OPTIMISE:
 			self.previousDFrame = {}
 			self.previousDFrame[ "positions" ] = dict( allpositions )
 			self.previousDFrame[ "quaternions" ] = dict( allquaterions )
 		
-		json.write("%s}%s" % ( tab, endl ) )	
+		jsonf.write("%s}%s" % ( tab, endl ) )	
 	
-	def hierarchyPrint( self, json, node, lvl ):
+	def hierarchyData( self, node ):
+		if node is None:
+			return
+		d = {}
+		d["bone"] = node.name
+		d["children"] = []
+		for child in node.children:
+			d["children"].append( self.hierarchyData( child ) )
+		return d
+			
+	def hierarchyPrint( self, jsonf, node, lvl ):
 		
 		if node is None:
 			return
@@ -700,13 +777,13 @@ class BvhConverter():
 			for i in range( lvl ):
 				tab += "\t"
 				
-		json.write("%s{%s%s\"bone\":\"%s\",%s" % ( tab, endl, tab, node.name, endl ) )
-		json.write("%s\"children\":[%s" % ( tab,endl ) )
+		jsonf.write("%s{%s%s\"bone\":\"%s\",%s" % ( tab, endl, tab, node.name, endl ) )
+		jsonf.write("%s\"children\":[%s" % ( tab,endl ) )
 		
 		for child in node.children:
 			self.hierarchyPrint( json, child, lvl )
 		
-		json.write("%s],},%s" % ( tab,endl ) )
+		jsonf.write("%s],},%s" % ( tab,endl ) )
 
 	def seekOrigins( self, nodes ):
 		
@@ -732,7 +809,7 @@ class BvhConverter():
 			
 			self.saveJsonData( bvhlist[ i ][ 1 ], tmpdata )
 			
-			print( "bvh \"{}\" loaded, remains {}/{}".format( self.data[ i ].name, ( len( bvhlist ) - ( i + 1 ) ), len( bvhlist ) ) )
+			print( "bvh \"{}\" loaded, remains {}/{}".format( tmpdata.name, ( len( bvhlist ) - ( i + 1 ) ), len( bvhlist ) ) )
 
 	def getQuaternion( self, bvhnode, frame ):
 	
