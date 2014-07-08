@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 using B2J;
 
-public class B2Jplayer : MonoBehaviour {
+public class B2Jplayer : B2JgenericPlayer {
 
 	public GameObject offsetNode;
 
@@ -42,8 +42,54 @@ public class B2Jplayer : MonoBehaviour {
 	private Vector3 hipsRight;
 	private Vector3 chestRight;
 
+	public List<string> displayList;
+
 	// Use this for initialization
 	void Start () {
+
+		// creating mapping infos for model 'bvh_numediart'
+		B2Jmapping mm = new B2Jmapping();
+		mm.transform2Bones = new Dictionary<Transform, string> ();
+		mm.initialRotation = new Dictionary<Transform, Quaternion> ();
+		Transform[] allChildren = GetComponentsInChildren<Transform>();
+		foreach( Transform child in allChildren ) {
+			if ( child.name == "hips" ) {
+				mm.transform2Bones.Add( child, "Hips" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "head" ) {
+				mm.transform2Bones.Add( child, "Head" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "spine" ) {
+				mm.transform2Bones.Add( child, "Spine" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "upper_arm_L" ) {
+				mm.transform2Bones.Add( child, "LeftArm" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "foot_L" ) {
+				mm.transform2Bones.Add( child, "LeftFoot" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "forearm_L" ) {
+				mm.transform2Bones.Add( child, "LeftForeArm" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "hand_L" ) {
+				mm.transform2Bones.Add( child, "LeftHand" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "shin_L" ) {
+				mm.transform2Bones.Add( child, "LeftLeg" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "shoulder_L" ) {
+				mm.transform2Bones.Add( child, "LeftShoulder" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "thigh_L" ) {
+				mm.transform2Bones.Add( child, "LeftUpLeg" );
+				mm.initialRotation.Add( child, child.rotation );
+			} else if ( child.name == "neck" ) {
+				mm.transform2Bones.Add( child, "Neck" );
+				mm.initialRotation.Add( child, child.rotation );
+			}
+		}
+		b2jMaps.Add( "bvh_numediart", mm );
+
 
 		bones = new Transform[ 25 ];
 		initialRotations = new Quaternion[ bones.Length ];
@@ -54,11 +100,38 @@ public class B2Jplayer : MonoBehaviour {
 		GetInitialDirections();
 		GetInitialRotations();
 
-//		B2Jserver.Instance.load( "bvh2json/data/ariaII_02" );
-//		B2Jserver.Instance.load( "bvh2json/data/clavaeolina_01" );
-//		B2Jserver.Instance.load( "bvh2json/data/test" );
-		B2Jserver.Instance.load( "bvh2json/data/test" );
+		if (server != null) {
+			server.load ("bvh2json/data/ariaII_02");
+//			server.load ("bvh2json/data/clavaeolina_01");
+//			server.load( "bvh2json/data/test" );
+//			server.load( "bvh2json/data/test" );
+		}
 
+	}
+
+	void Update () {
+
+		sync();
+
+		displayList.Clear();
+
+		foreach ( B2Jplayhead ph in b2jPlayheads ) {
+			if ( ph.Active ) {
+				foreach( KeyValuePair< Transform, Quaternion > kv in ph.Retriever.rotations ) {
+					Quaternion initq = b2jMaps[ ph.Retriever.model ].initialRotation[ kv.Key ];
+					kv.Key.rotation = Quaternion.Euler(
+						initq.eulerAngles.x + kv.Value.eulerAngles.x,
+						initq.eulerAngles.y + kv.Value.eulerAngles.y,
+						initq.eulerAngles.z + kv.Value.eulerAngles.z );
+				}
+			}
+		}
+
+
+		foreach( B2Jplayhead ph in b2jPlayheads ) {
+			displayList.Add( ph.Info );
+		}
+		
 	}
 
 	void MapBones() {
@@ -167,14 +240,6 @@ public class B2Jplayer : MonoBehaviour {
 			}
 		}
 	
-	}
-	
-	// Update is called once per frame
-	void Update () {
-
-		float r = UnityEngine.Random.value;
-		RotateBone( 4, 0, 0, r * 20 );
-
 	}
 
 	void RotateBone( int boneIndex, float rX, float rY, float rZ ) {

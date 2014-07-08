@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+
 using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
@@ -62,6 +63,318 @@ namespace B2J {
 		public string name;
 		public List< B2Jhierarchy > children;
 	}
+
+	public class B2Jmapping {
+		public Dictionary< UnityEngine.Transform, string> transform2Bones;
+		public Dictionary< UnityEngine.Transform, Quaternion> initialRotation;
+	}
+
+	public class B2Jretriever {
+		public string model;
+		public Dictionary< UnityEngine.Transform, int> ids;
+		public Dictionary< UnityEngine.Transform, Vector3> positions;
+		public Dictionary< UnityEngine.Transform, Quaternion> rotations;
+		public Dictionary< UnityEngine.Transform, Vector3> scales;
+
+	}
+
+	public enum B2Jloop {
+		B2JLOOPNONE = 0,
+		B2JLOOPNORMAL = 1,
+		B2JLOOPPALINDROME = 2
+	}
+
+	public class B2Jplayhead {
+
+		private B2Jloop _loop;
+		private bool _active = true;
+		private float _time;
+		private float _speed; // multiplier of time in millis
+		private B2Jrecord _record;
+		private float _weight;
+		private List<Vector3> positions; // same length as record.bones
+		private List<Quaternion> rotations; // same length as record.bones
+		private List<Vector3> scales; // same length as record.bones
+
+		private float _cueIn;
+		private float _cueOut;
+
+		protected B2Jretriever _retriever;
+
+		// working values
+		Vector3 p1;
+		Quaternion q1;
+		Vector3 s1;
+		Vector3 p2;
+		Quaternion q2;
+		Vector3 s2;
+		Vector3 Rp;
+		Quaternion Rq;
+		Vector3 Rs;
+
+		public B2Jplayhead( B2Jrecord rec, B2Jloop loop ) {
+
+			_loop = loop;
+			_record = rec;
+			_retriever = null;
+			positions = new List<Vector3> ();
+			rotations = new List<Quaternion> ();
+			scales = new List<Vector3> ();
+			foreach (B2Jbone b in rec.bones) {
+				positions.Add( new Vector3() );
+				rotations.Add( Quaternion.Euler( 0,0,0 ) );
+				scales.Add( new Vector3() );
+			}
+			_cueIn = _record.keys[ 0 ].timestamp;
+			_cueOut = _record.keys[ _record.keys.Count - 1 ].timestamp;
+			_time = _cueIn;
+			_speed = 1;
+			_weight = 1;
+
+		}
+
+		public B2Jretriever Retriever {
+			get{
+				return _retriever;
+			}
+		}
+
+		public string Info {
+			get {
+				return "" + _time + " [ " + _cueIn + ", " + _cueOut + "], " + _record.name + " / " + _active;
+			}
+		}
+
+		public B2Jrecord Record {
+			get{
+				return _record;
+			}
+		}
+
+		public bool Active {
+			get{
+				if ( _retriever == null || !_active || _weight == 0 )
+					return false;
+				return true;
+			}
+		}
+
+		public float Weight {
+			set {
+				if ( value < 0 || value > 1 ) {
+					Debug.LogError( "weight must be in [ 0,1 ]!" );
+					return;
+				}
+				_weight = value;
+			}
+			get {
+				return _weight;
+			}
+		}
+
+		public void setMap( Dictionary< string, B2Jmapping > mapmodel ) {
+
+			B2Jmapping mm = mapmodel [_record.model];
+			if ( mm != null ) {
+
+				_retriever = new B2Jretriever();
+				_retriever.model = _record.model;
+				_retriever.ids = new Dictionary< UnityEngine.Transform, int>();
+				_retriever.positions = new Dictionary< UnityEngine.Transform, Vector3>();
+				_retriever.rotations = new Dictionary< UnityEngine.Transform, Quaternion>();
+				_retriever.scales = new Dictionary< UnityEngine.Transform, Vector3>();
+
+				foreach( KeyValuePair< UnityEngine.Transform, string > kv in mm.transform2Bones ) {
+					string bname = kv.Value;
+					int bID = 0;
+					foreach( B2Jbone b in _record.bones ) {
+						if ( b.name == bname ) {
+							_retriever.ids.Add( kv.Key, bID );
+							_retriever.positions.Add( kv.Key, positions[ bID ] );
+							_retriever.rotations.Add( kv.Key, rotations[ bID ] );
+							_retriever.scales.Add( kv.Key, scales[ bID ] );
+							break;
+						}
+						bID++;
+					}
+				}
+
+			}
+
+		}
+
+		public void update() {
+
+			if ( !_active || _speed == 0 ) {
+				// not ready to use, create mapping or reactivate...
+				return;
+			}
+			
+			if ( _time > _cueOut ) {
+				
+				_time = _cueOut;
+				
+				if ( _loop == B2Jloop.B2JLOOPNONE ) {
+					_active = false;
+					return;
+				} else if ( _loop == B2Jloop.B2JLOOPNORMAL ) {
+					// go back to beginning
+					_time = 0;
+				} else if ( _loop == B2Jloop.B2JLOOPPALINDROME ) {
+					// go back to beginning
+					_speed *= -1;
+				}
+				
+			} else if ( _time < _cueIn ) {
+				_time = _cueIn;
+				if ( _loop == B2Jloop.B2JLOOPNORMAL ) {
+					_speed *= -1;
+				}
+			}
+			
+			if ( _weight == 0 || _retriever == null ) {
+				return;
+			}
+
+			renderFrame();
+
+			// updating the retriever
+			foreach ( KeyValuePair< UnityEngine.Transform, int > kv in _retriever.ids ) {
+				_retriever.positions[ kv.Key ] = positions[ kv.Value ];
+				_retriever.rotations[ kv.Key ] = rotations[ kv.Value ];
+				_retriever.scales[ kv.Key ] = scales[ kv.Value ];
+			}
+
+			_time += Time.deltaTime * 1000 * _speed;
+
+		}
+		
+		private void renderFrame() {
+
+			// seeking frames
+			B2Jkey below = null;
+			B2Jkey above = null;
+
+			if ( _speed > 0 ) {
+				foreach( B2Jkey k in _record.keys ) {
+					below = above;
+					above = k;
+					if ( above.timestamp >= _time )
+						break;
+				}
+			} else {
+				foreach( B2Jkey k in _record.keys ) {
+					above = below;
+					below = k;
+					if ( below.timestamp >= _time )
+						break;
+				}
+			}
+
+			if (above == null && below == null) {
+				Debug.LogError ( "Impossible to find frames at this timecode!!!" );
+			}
+
+			if ( above.timestamp == _time ) {
+				// cool, it's easy ( but rare )
+				for( int i = 0; i < _record.bones.Count; i++ ) {
+					if ( _record.bones[ i ].positions_enabled ) {
+						p1 = above.positions[ i ];
+						positions[ i ].Set( p1.x, p1.y, p1.z );
+					}
+					if ( _record.bones[ i ].rotations_enabled ) {
+						q1 = above.rotations[ i ];
+						rotations[ i ] = new Quaternion( q1.x, q1.y, q1.z, q1.w );
+					}
+					if ( _record.bones[ i ].scales_enabled ) {
+						s1 = above.scales[ i ];
+						scales[ i ].Set( s1.x, s1.y, s1.z );
+					}
+				}
+
+			} else {
+
+				// ... less funny, have to smooth values...
+				float gap = above.timestamp - below.timestamp;
+				float abovepc = ( ( _time - below.timestamp ) / gap );
+				float belowpc = 1 - abovepc;
+
+				for( int i = 0; i < _record.bones.Count; i++ ) {
+
+					if ( _record.bones[ i ].positions_enabled ) {
+						p1 = below.positions[ i ];
+						p2 = above.positions[ i ];
+						Rp = positions[ i ];
+						Rp.Set( 
+						       p1.x * belowpc + p2.x * abovepc,
+						       p1.y * belowpc + p2.y * abovepc,
+						       p1.z * belowpc + p2.z * abovepc
+						       );
+					}
+
+					if ( _record.bones[ i ].rotations_enabled ) {
+						q1 = below.rotations[ i ];
+						q2 = above.rotations[ i ];
+						rotations[ i ] = Quaternion.Slerp( q1, q2, abovepc );
+					}
+
+					if ( _record.bones[ i ].scales_enabled ) {
+						s1 = below.scales[ i ];
+						s2 = above.scales[ i ];
+						Rs = scales[ i ];
+						Rs.Set( 
+						       s1.x * belowpc + s2.x * abovepc,
+						       s1.y * belowpc + s2.y * abovepc,
+						       s1.z * belowpc + s2.z * abovepc
+						       );
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	public class B2JgenericPlayer : MonoBehaviour {
+		
+		public B2Jserver server;
+		protected List< B2Jplayhead > b2jPlayheads;
+		protected Dictionary< string, B2Jmapping > b2jMaps;
+
+		public B2JgenericPlayer() {
+			server = null;
+			b2jPlayheads = new List< B2Jplayhead > ();
+			b2jMaps = new Dictionary< string, B2Jmapping > ();
+		}
+
+		protected void sync() {
+			Synchronise ();
+		}
+
+		private void Synchronise() {
+
+			if (server != null) {
+
+				server.syncPlayheads( b2jPlayheads );
+				// all playheads are now ok
+				foreach( B2Jplayhead ph in b2jPlayheads ) {
+
+					if ( ph.Retriever == null )
+						ph.setMap( b2jMaps );
+
+					ph.update();
+
+				}
+
+			}
+
+		}
+
+		
+	}
+
 
 	#endregion
 
@@ -180,7 +493,7 @@ namespace B2J {
 			if (summary_q.Count > 0) {
 				newkey.rotations = new List<Quaternion> ();
 				for (int i = 0; i < bones.Count; i++) {
-					newkey.rotations.Add ( new Quaternion () );
+					newkey.rotations.Add ( Quaternion.Euler( 0,0,0 ) );
 					/*
 					if (newkey.kID == 0 && bones [i].rotations_enabled) {
 						newkey.rotations.Add ( new Quaternion () );
@@ -190,9 +503,10 @@ namespace B2J {
 					*/
 				}
 				List<int> qIds = convertListOfIndex ((IList)((IDictionary)keydata ["quaternions"]) ["bones"]);
+
 				List<float> qValues = convertListOfFloat ((IList)((IDictionary)keydata ["quaternions"]) ["values"]);
 				for (int i = 0; i < qIds.Count; i++) {
-					newkey.rotations [ qIds [i] ] = new Quaternion (qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3]);
+					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3]);
 				}
 			} else {
 				newkey.rotations = null;
@@ -415,7 +729,7 @@ namespace B2J {
 		public List<int> convertListOfIndex( IList _list ) {
 
 			List<int> output = new List<int>();
-			if (_list.Count == 1 && _list [0] == "all") {
+			if (_list.Count == 1 && _list[0] == "all") {
 				output.Add (-1);
 			} else {
 				for (int i = 0; i < _list.Count; i++) {
@@ -450,99 +764,6 @@ namespace B2J {
 				return null;
 			}
 			return bones[ bId ];
-		}
-
-	}
-	#endregion
-
-	#region server definition
-	public class B2Jserver {
-
-		static readonly B2Jserver _instance = new B2Jserver();
-		
-		public static B2Jserver Instance {
-			get {
-				return _instance;
-			}
-		}
-
-		private List<string> loadedpath;
-		private List<string> loadingpath;
-		private List<B2Jrecord> records;
-
-		private B2Jserver() {
-
-			loadedpath = new List<string> ();
-			loadingpath = new List<string> ();
-			records = new List<B2Jrecord> ();
-
-		}
-
-		public void load( string path ) {
-
-			if ( loadedpath.Contains ( path ) ) {
-				Debug.Log ( "'" + path + "' already loaded" );
-				return;
-			}
-
-			loadedpath.Add( path );
-			addNewRecord( B2Jparser.Instance.load ( path ) );
-
-		}
-
-		/*
-		private IEnumerator loader() {
-		
-			if ( loadingpath == null ) {
-				Debug.Log ( "FUCK!" );
-				yield return true;
-			}
-
-			while ( loadingpath.Count > 0 ) {
-				string path = loadingpath[ 0 ];
-				loadingpath.Remove( path );
-				addNewRecord( B2Jparser.Instance.load ( path ) );
-			}
-
-			yield return true;
-
-		}
-		*/
-
-		public void addNewRecord( B2Jrecord rec ) {
-
-			if ( rec != null ) {
-				records.Add( rec );
-				Debug.Log ( "new record added: " + rec.name + ", " + records.Count + " record(s) loaded" );
-			}
-
-		}
-
-		public void printRecord( B2Jrecord br ) {
-
-			if (br == null) {
-				Debug.Log ("BVH2JSON: record is empty" );
-			} else {
-				Debug.Log ("BVH2JSON************");
-				Debug.Log ( br.name );
-				for ( int i = 0; i < br.groups.Count; i++ ) {
-					Debug.Log ( "group[" + i + "] = " + br.groups[ i ].name + " (" + br.groups[ i ].use_millis + "," + br.groups[ i ].use_keys + ")" );
-				}
-				for ( int i = 0; i < br.bones.Count; i++ ) {
-					Debug.Log ( "bone[" + i + "] = " + br.bones[ i ].name + " (" + br.bones[ i ].positions_enabled + "," +  br.bones[ i ].rotations_enabled  + "," +  br.bones[ i ].scales_enabled + ")" );
-					if ( br.bones[ i ].parent != null ) {
-						Debug.Log ( "\t\tparent:" + br.bones[ i ].parent.name );
-					}
-					foreach( B2Jbone child in br.bones[ i ].children ) {
-						Debug.Log ( "\t\tchild:" + child.name );
-					}
-
-				}
-				for ( int i = 0; i < br.keys.Count; i++ ) {
-					Debug.Log ( "key[" + i + "] = " + br.keys[ i ].kID + " / " + br.keys[ i ].timestamp );
-				}
-				Debug.Log ("BVH2JSON************");
-			}
 		}
 
 	}
