@@ -286,7 +286,12 @@ class BvhConverter():
 		jsonData[ "list" ] = []
 		for i in data.nodes:
 			jsonData[ "list" ].append( data.nodes[ i ].name )
-
+		jsonData[ "rest" ] = []
+		for i in data.nodes:
+			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.x )
+			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.y )
+			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.z )
+		
 		jsonData[ "hierarchy" ] = []
 		roots = self.seekOrigins( data.nodes )
 		for r in roots:

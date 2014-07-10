@@ -15,6 +15,7 @@
 		{ "name": "run", "in": -1, "out": -1, "kin": 50, "kout": 96 },
 	]
 	"list": [ "hips", "spine", "chest", "neck", "shoulderL" ], // index of quaternions in "data[n].quaternions"
+	"rest": [ 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0 ],
 	"hierarchy": [
 		{ // hierarchy of bones of the list above. all bones must be listed
 		"bone":  "hips", "children": [
