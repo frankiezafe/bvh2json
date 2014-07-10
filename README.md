@@ -19,6 +19,7 @@ TODO:
 =====
 - [done] add a "summary" in data : shows bones that are updated on position, rotation & scale
 - [done] reformat output, no ending comma! > json python lib used to encode
+- [important] loading of the default BVH pose + apply it on the skeleton ( in unity: Quaternion.FromToRotation )
 - add "offset" field from bvh bones description
 - reader in blender
 - reader in unity
