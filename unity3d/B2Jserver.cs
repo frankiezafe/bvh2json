@@ -124,7 +124,7 @@ public class B2Jserver: MonoBehaviour {
 	private void createNewPlayhead( B2Jrecord rec, List< B2Jplayhead > phs ) {
 	
 		B2Jplayhead ph = new B2Jplayhead ( rec, B2Jloop.B2JLOOPNORMAL );
-		phs.Add (ph);
+		phs.Add ( ph );
 	
 	}
 

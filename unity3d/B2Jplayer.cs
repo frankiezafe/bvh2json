@@ -112,6 +112,9 @@ public class B2Jplayer : B2JgenericPlayer {
 	void Update () {
 
 		sync();
+		B2Jplayhead testp = getPlayhead( "ariaII_02" );
+		if (testp != null)
+			testp.Speed = 0.01f;
 
 		displayList.Clear();
 
@@ -119,10 +122,22 @@ public class B2Jplayer : B2JgenericPlayer {
 			if ( ph.Active ) {
 				foreach( KeyValuePair< Transform, Quaternion > kv in ph.Retriever.rotations ) {
 					Quaternion initq = b2jMaps[ ph.Retriever.model ].initialRotation[ kv.Key ];
+
+//					kv.Key.rotation = Quaternion.Euler(
+//						initq.eulerAngles.x,
+//						initq.eulerAngles.y,
+//						initq.eulerAngles.z );
+
 					kv.Key.rotation = Quaternion.Euler(
 						initq.eulerAngles.x + kv.Value.eulerAngles.x,
 						initq.eulerAngles.y + kv.Value.eulerAngles.y,
 						initq.eulerAngles.z + kv.Value.eulerAngles.z );
+
+//					kv.Key.localRotation = Quaternion.Euler(
+//						kv.Value.eulerAngles.x,
+//						kv.Value.eulerAngles.y,
+//						kv.Value.eulerAngles.z );
+
 				}
 			}
 		}

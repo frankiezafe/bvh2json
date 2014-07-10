@@ -122,7 +122,7 @@ namespace B2J {
 			scales = new List<Vector3> ();
 			foreach (B2Jbone b in rec.bones) {
 				positions.Add( new Vector3() );
-				rotations.Add( Quaternion.Euler( 0,0,0 ) );
+				rotations.Add(  Quaternion.identity );
 				scales.Add( new Vector3() );
 			}
 			_cueIn = _record.keys[ 0 ].timestamp;
@@ -131,6 +131,21 @@ namespace B2J {
 			_speed = 1;
 			_weight = 1;
 
+		}
+
+		public string Name {
+			get {
+				return _record.name;
+			}
+		}
+
+		public float Speed {
+			get {
+				return _speed;
+			}
+			set {
+				_speed = value;
+			}
 		}
 
 		public B2Jretriever Retriever {
@@ -219,7 +234,7 @@ namespace B2J {
 					return;
 				} else if ( _loop == B2Jloop.B2JLOOPNORMAL ) {
 					// go back to beginning
-					_time = 0;
+					_time = _cueIn;
 				} else if ( _loop == B2Jloop.B2JLOOPPALINDROME ) {
 					// go back to beginning
 					_speed *= -1;
@@ -271,11 +286,11 @@ namespace B2J {
 				}
 			}
 
-			if (above == null && below == null) {
-				Debug.LogError ( "Impossible to find frames at this timecode!!!" );
+			if ( above == null ) {
+				Debug.LogError ( "Impossible to find frames at this timecode!!!: " + _time );
 			}
 
-			if ( above.timestamp == _time ) {
+			if ( above.timestamp == _time || below == null ) {
 				// cool, it's easy ( but rare )
 				for( int i = 0; i < _record.bones.Count; i++ ) {
 					if ( _record.bones[ i ].positions_enabled ) {
@@ -347,6 +362,16 @@ namespace B2J {
 			server = null;
 			b2jPlayheads = new List< B2Jplayhead > ();
 			b2jMaps = new Dictionary< string, B2Jmapping > ();
+		}
+
+		public B2Jplayhead getPlayhead( string name ) {
+
+			foreach( B2Jplayhead ph in b2jPlayheads )
+				if ( ph.Name == name )
+					return ph;
+
+			return null;
+
 		}
 
 		protected void sync() {
@@ -449,19 +474,21 @@ namespace B2J {
 
 			List<B2Jkey> output = new List<B2Jkey> ();
 			IList dataks = (IList) data[ "data" ];
+			B2Jkey prevk = null;
 			for (int i = 0; i < dataks.Count; i++) {
 				// waiting for the first key to be id 0
-				B2Jkey newk = parseKey( (IDictionary) dataks[ i ], bones );
+				B2Jkey newk = parseKey( (IDictionary) dataks[ i ], bones, prevk );
 				if ( newk != null ) {
 					output.Add( newk );
 				}
+				prevk = newk;
 			}
 
 			return output;
 		
 		}
 
-		private B2Jkey parseKey( IDictionary keydata, List<B2Jbone> bones ) {
+		private B2Jkey parseKey( IDictionary keydata, List<B2Jbone> bones, B2Jkey previouskey ) {
 		
 			B2Jkey newkey = new B2Jkey ();
 			newkey.kID = int.Parse ( "" + keydata ["id"] );
@@ -471,7 +498,10 @@ namespace B2J {
 			if (summary_p.Count > 0) {
 				newkey.positions = new List<Vector3> ();
 				for (int i = 0; i < bones.Count; i++) {
-					newkey.positions.Add( new Vector3( 0,0,0 ) );
+					if ( previouskey == null )
+						newkey.positions.Add( new Vector3( 0,0,0 ) );
+					else
+						newkey.positions.Add( new Vector3( previouskey.positions[ i ].x, previouskey.positions[ i ].y, previouskey.positions[ i ].z ) );
 					/*
 					if ( newkey.kID == 0 && bones[ i ].positions_enabled ) {
 						newkey.positions.Add( new Vector3( 0,0,0 ) );
@@ -493,7 +523,10 @@ namespace B2J {
 			if (summary_q.Count > 0) {
 				newkey.rotations = new List<Quaternion> ();
 				for (int i = 0; i < bones.Count; i++) {
-					newkey.rotations.Add ( Quaternion.Euler( 0,0,0 ) );
+					if ( previouskey == null )
+						newkey.rotations.Add ( Quaternion.identity );
+					else
+						newkey.rotations.Add( previouskey.rotations[ i ] );
 					/*
 					if (newkey.kID == 0 && bones [i].rotations_enabled) {
 						newkey.rotations.Add ( new Quaternion () );
@@ -516,7 +549,10 @@ namespace B2J {
 			if (summary_s.Count > 0) {
 				newkey.scales = new List<Vector3> ();
 				for (int i = 0; i < bones.Count; i++) {
-					newkey.scales.Add (new Vector3 (1, 1, 1));
+					if ( previouskey == null )
+						newkey.scales.Add ( new Vector3 (1, 1, 1) );
+					else
+						newkey.scales.Add( new Vector3( previouskey.scales[ i ].x, previouskey.scales[ i ].y, previouskey.scales[ i ].z ) );
 					/*
 					if (newkey.kID == 0 && bones [i].scales_enabled) {
 						newkey.scales.Add (new Vector3 (1, 1, 1));
