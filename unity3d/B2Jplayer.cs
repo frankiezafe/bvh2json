@@ -49,8 +49,6 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		// creating mapping infos for model 'bvh_numediart'
 		B2Jmapping mm = new B2Jmapping();
-		mm.transform2Bones = new Dictionary<Transform, string> ();
-		mm.initialRotation = new Dictionary<Transform, Quaternion> ();
 		Transform[] allChildren = GetComponentsInChildren<Transform>();
 		foreach( Transform child in allChildren ) {
 			if ( child.name == "hips" ) {
@@ -90,6 +88,15 @@ public class B2Jplayer : B2JgenericPlayer {
 		}
 		b2jMaps.Add( "bvh_numediart", mm );
 
+		mm = new B2Jmapping();
+		foreach( Transform child in allChildren ) {
+			if ( child.name == "hips" ) {
+				mm.transform2Bones.Add( child, "Hips" );
+				mm.initialRotation.Add( child, child.rotation );
+			}
+		}
+		b2jMaps.Add( "tester", mm );
+
 
 		bones = new Transform[ 25 ];
 		initialRotations = new Quaternion[ bones.Length ];
@@ -105,6 +112,8 @@ public class B2Jplayer : B2JgenericPlayer {
 //			server.load ("bvh2json/data/clavaeolina_01");
 //			server.load( "bvh2json/data/test" );
 //			server.load( "bvh2json/data/test" );
+//			server.load( "bvh2json/data/hips" );
+//			server.load( "bvh2json/data/reallybasic" );
 		}
 
 	}
@@ -115,13 +124,18 @@ public class B2Jplayer : B2JgenericPlayer {
 		B2Jplayhead testp = getPlayhead( "ariaII_02" );
 		if (testp != null)
 			testp.Speed = 0.01f;
+//		testp = getPlayhead( "hips" );
+//		if (testp != null)
+//			testp.Speed = 3.0f;
 
 		displayList.Clear();
 
 		foreach ( B2Jplayhead ph in b2jPlayheads ) {
 			if ( ph.Active ) {
 				foreach( KeyValuePair< Transform, Quaternion > kv in ph.Retriever.rotations ) {
-					Quaternion initq = b2jMaps[ ph.Retriever.model ].initialRotation[ kv.Key ];
+
+					Vector3 initeulers = b2jMaps[ ph.Retriever.model ].initialRotation[ kv.Key ].eulerAngles;
+					Vector3 neweulers = kv.Value.eulerAngles;
 
 //					kv.Key.rotation = Quaternion.Euler(
 //						initq.eulerAngles.x,
@@ -129,16 +143,16 @@ public class B2Jplayer : B2JgenericPlayer {
 //						initq.eulerAngles.z );
 
 					kv.Key.rotation = Quaternion.Euler(
-						initq.eulerAngles.x + kv.Value.eulerAngles.x,
-						initq.eulerAngles.y + kv.Value.eulerAngles.y,
-						initq.eulerAngles.z + kv.Value.eulerAngles.z );
+						initeulers.x + neweulers.x,
+						initeulers.y + neweulers.y,
+						initeulers.z + neweulers.z );
 
-//					kv.Key.localRotation = Quaternion.Euler(
-//						kv.Value.eulerAngles.x,
-//						kv.Value.eulerAngles.y,
-//						kv.Value.eulerAngles.z );
-
+//					kv.Key.localRotation = kv.Value;
 				}
+//				foreach( KeyValuePair< Transform, Vector3 > kv in ph.Retriever.positions ) {
+//					kv.Key.position = new Vector3( kv.Value.x, kv.Value.y, kv.Value.z );
+//					Debug.Log ( ph.ToString() + " / " + kv.Value.x + ", " + kv.Value.y + ", " + kv.Value.z );
+//				}
 			}
 		}
 

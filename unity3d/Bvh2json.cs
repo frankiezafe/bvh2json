@@ -24,6 +24,7 @@ namespace B2J {
 		public string name;
 		public B2Jbone parent;
 		public List<B2Jbone> children;
+		public Vector3 rest;
 		public bool positions_enabled;
 		public bool rotations_enabled;
 		public bool scales_enabled;
@@ -65,8 +66,8 @@ namespace B2J {
 	}
 
 	public class B2Jmapping {
-		public Dictionary< UnityEngine.Transform, string> transform2Bones;
-		public Dictionary< UnityEngine.Transform, Quaternion> initialRotation;
+		public Dictionary< UnityEngine.Transform, string> transform2Bones = new Dictionary<Transform, string> ();
+		public Dictionary< UnityEngine.Transform, Quaternion> initialRotation = new Dictionary<Transform, Quaternion> ();
 	}
 
 	public class B2Jretriever {
@@ -295,7 +296,7 @@ namespace B2J {
 				for( int i = 0; i < _record.bones.Count; i++ ) {
 					if ( _record.bones[ i ].positions_enabled ) {
 						p1 = above.positions[ i ];
-						positions[ i ].Set( p1.x, p1.y, p1.z );
+						positions[ i ] = new Vector3( p1.x, p1.y, p1.z );
 					}
 					if ( _record.bones[ i ].rotations_enabled ) {
 						q1 = above.rotations[ i ];
@@ -303,7 +304,7 @@ namespace B2J {
 					}
 					if ( _record.bones[ i ].scales_enabled ) {
 						s1 = above.scales[ i ];
-						scales[ i ].Set( s1.x, s1.y, s1.z );
+						scales[ i ] = new Vector3( s1.x, s1.y, s1.z );
 					}
 				}
 
@@ -319,8 +320,7 @@ namespace B2J {
 					if ( _record.bones[ i ].positions_enabled ) {
 						p1 = below.positions[ i ];
 						p2 = above.positions[ i ];
-						Rp = positions[ i ];
-						Rp.Set( 
+						positions[ i ] = new Vector3( 
 						       p1.x * belowpc + p2.x * abovepc,
 						       p1.y * belowpc + p2.y * abovepc,
 						       p1.z * belowpc + p2.z * abovepc
@@ -336,8 +336,7 @@ namespace B2J {
 					if ( _record.bones[ i ].scales_enabled ) {
 						s1 = below.scales[ i ];
 						s2 = above.scales[ i ];
-						Rs = scales[ i ];
-						Rs.Set( 
+						scales[ i ] = new Vector3( 
 						       s1.x * belowpc + s2.x * abovepc,
 						       s1.y * belowpc + s2.y * abovepc,
 						       s1.z * belowpc + s2.z * abovepc
@@ -421,6 +420,7 @@ namespace B2J {
 		private List<int> summary_q;
 		private bool summary_s_all;
 		private List<int> summary_s;
+		private List<int> idsFullList;
 		
 		private B2Jparser() {}
 
@@ -439,6 +439,8 @@ namespace B2J {
 				Debug.Log ( "Failed to parse " + path );
 				return null;
 			}
+
+			idsFullList = new List<int> ();
 
 			tmphierarchies = new List< B2Jhierarchy > ();
 			parseHierarchy ( (IList) data["hierarchy"], tmphierarchies );
@@ -539,7 +541,7 @@ namespace B2J {
 
 				List<float> qValues = convertListOfFloat ((IList)((IDictionary)keydata ["quaternions"]) ["values"]);
 				for (int i = 0; i < qIds.Count; i++) {
-					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3]);
+					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
 				}
 			} else {
 				newkey.rotations = null;
@@ -627,12 +629,14 @@ namespace B2J {
 			// basic list of bones
 			List<B2Jbone> output = new List<B2Jbone> ();
 			IList dbs = ( IList ) data[ "list" ];
+			IList rests = ( IList ) data[ "rest" ];
 			for ( int i = 0; i < dbs.Count; i++ ) {
 				string bname = "" + dbs[ i ];
 				B2Jbone newb = new B2Jbone();
 				newb.name = bname;
 				newb.children = new List<B2Jbone>();
 				newb.parent = null;
+				newb.rest = new Vector3( float.Parse( "" + rests[ ( i * 3 ) ] ), float.Parse( "" + rests[ ( i * 3 ) + 1 ] ), float.Parse( "" + rests[ ( i * 3 ) + 2 ] ) );
 				newb.positions_enabled = false;
 				newb.rotations_enabled = false;
 				newb.scales_enabled = false;
@@ -645,6 +649,8 @@ namespace B2J {
 				if ( summary_s.Contains( i ) || summary_s_all ) {
 					newb.scales_enabled = true;
 				}
+				// filling list of all bones ids
+				idsFullList.Add( i );
 				output.Add( newb );
 			}
 
@@ -765,15 +771,17 @@ namespace B2J {
 		public List<int> convertListOfIndex( IList _list ) {
 
 			List<int> output = new List<int>();
-			if (_list.Count == 1 && _list[0] == "all") {
-				output.Add (-1);
+			if (_list.Count == 0) {
+				return output;
+			}
+			if ( string.Compare( "" + _list[0], "all" ) == 0 ) {
+				output = new List<int>( idsFullList );
 			} else {
 				for (int i = 0; i < _list.Count; i++) {
 					output.Add ( int.Parse ( "" + _list [i] ) );
 				}
 			}
 			return output;
-
 		}
 
 		public List<float> convertListOfFloat( IList _list ) {
