@@ -36,9 +36,11 @@ JSON_COMPRESS = False
 JSON_OPTIMISE = True
 
 bvhlist = [ 
-#		[ "miko_ariaII02", "//bvhs/ariaII_02.bvh" ],
-#		["clavaeolina_01", "//bvhs/clavaeolina_01.bvh" ],
-		[ "test", "//bvhs/test.bvh" ]
+		[ "miko_ariaII02", "//bvhs/ariaII_02.bvh" ],
+		["clavaeolina_01", "//bvhs/clavaeolina_01.bvh" ],
+		[ "test", "//bvhs/test.bvh" ],
+		[ "hips", "//bvhs/hips.bvh" ],
+		[ "hips", "//bvhs/reallybasic.bvh" ]
 ]
 
 class BvhNode(object):
@@ -382,11 +384,13 @@ class BvhConverter():
 							pchanged[ n ] = i
 						if not self.compareQuats( self.previousDFrame[ "quaternions" ][ n ], allquaterions[ n ] ):
 							qchanged[ n ] = i
-					elif self.previousDFrame is 0:
-						if allpositions[ n ] != emptyv:
-							pchanged[ n ] = i
-						if not self.compareQuats( allquaterions[ n ], emptyq ):
-							qchanged[ n ] = i
+						'''
+						elif self.previousDFrame is 0:
+							if allpositions[ n ] != emptyv:
+								pchanged[ n ] = i
+							if not self.compareQuats( allquaterions[ n ], emptyq ):
+								qchanged[ n ] = i
+						'''
 					else:
 						pchanged[ n ] = i
 						qchanged[ n ] = i
@@ -430,18 +434,18 @@ class BvhConverter():
 				if len( qchanged ) == len( data.nodes ):
 					frameData[ "quaternions" ]["bones"].append( "all" )
 					for n in qchanged:
-						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
 				elif len( qchanged ) != 0:
 					for n in qchanged:
 						frameData[ "quaternions" ]["bones"].append( qchanged[ n ] )
 					for n in qchanged:
-						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
+						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
 
 			else:
 				frameData[ "positions" ]["bones"].append( "all" )
@@ -451,10 +455,10 @@ class BvhConverter():
 					frameData[ "positions" ]["values"].append( allpositions[ n ].z )
 				frameData[ "quaternions" ]["bones"].append( "all" )
 				for n in allquaterions:
-					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
+					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
 				
 			if JSON_OPTIMISE:
 				self.previousDFrame = {}
