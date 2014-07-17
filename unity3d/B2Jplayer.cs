@@ -53,46 +53,97 @@ public class B2Jplayer : B2JgenericPlayer {
 		foreach( Transform child in allChildren ) {
 			if ( child.name == "hips" ) {
 				mm.transform2Bones.Add( child, "Hips" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "head" ) {
+				mm.initialRotation.Add( child, child.localRotation );
+			} 
+//			else 
+			if ( child.name == "head" ) {
 				mm.transform2Bones.Add( child, "Head" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "spine" ) {
+				mm.initialRotation.Add( child, child.localRotation );
+			} 
+//			else  
+			if ( child.name == "spine" ) {
 				mm.transform2Bones.Add( child, "Spine" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "upper_arm_L" ) {
-				mm.transform2Bones.Add( child, "LeftArm" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "foot_L" ) {
-				mm.transform2Bones.Add( child, "LeftFoot" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "forearm_L" ) {
-				mm.transform2Bones.Add( child, "LeftForeArm" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "hand_L" ) {
-				mm.transform2Bones.Add( child, "LeftHand" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "shin_L" ) {
-				mm.transform2Bones.Add( child, "LeftLeg" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "shoulder_L" ) {
+				mm.initialRotation.Add( child, child.localRotation );
+			} 
+			if ( child.name == "chest" ) {
+				mm.transform2Bones.Add( child, "Spine1" );
+				mm.initialRotation.Add( child, child.localRotation );
+			} 
+//			else 
+//			if ( child.name == "upper_arm_L" ) {
+//				mm.transform2Bones.Add( child, "LeftArm" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			} 
+//			else 
+//			if ( child.name == "foot_L" ) {
+//				mm.transform2Bones.Add( child, "LeftFoot" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			} 
+//			else 
+//			if ( child.name == "forearm_L" ) {
+//				mm.transform2Bones.Add( child, "LeftForeArm" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			} 
+//			else 
+//			if ( child.name == "hand_L" ) {
+//				mm.transform2Bones.Add( child, "LeftHand" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			} 
+//			else 
+//			if ( child.name == "shin_L" ) {
+//				mm.transform2Bones.Add( child, "LeftLeg" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			} 
+//			else 
+			if ( child.name == "shoulder_L" ) {
 				mm.transform2Bones.Add( child, "LeftShoulder" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "thigh_L" ) {
-				mm.transform2Bones.Add( child, "LeftUpLeg" );
-				mm.initialRotation.Add( child, child.rotation );
-			} else if ( child.name == "neck" ) {
+				mm.initialRotation.Add( child, child.localRotation );
+			} 
+			if ( child.name == "shoulder_R" ) {
+				mm.transform2Bones.Add( child, "RightShoulder" );
+				mm.initialRotation.Add( child, child.localRotation );
+			} 
+//			else 
+//			if ( child.name == "thigh_L" ) {
+//				mm.transform2Bones.Add( child, "LeftUpLeg" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			}  
+//			if ( child.name == "shin_L" ) {
+//				mm.transform2Bones.Add( child, "LeftLeg" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			}   
+//			if ( child.name == "foot_L" ) {
+//				mm.transform2Bones.Add( child, "LeftFoot" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			}  
+//			if ( child.name == "thigh_R" ) {
+//				mm.transform2Bones.Add( child, "RightUpLeg" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			}  
+//			if ( child.name == "shin_R" ) {
+//				mm.transform2Bones.Add( child, "RightLeg" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			}   
+//			if ( child.name == "foot_R" ) {
+//				mm.transform2Bones.Add( child, "RightFoot" );
+//				mm.initialRotation.Add( child, child.localRotation );
+//			} 
+//			else 
+			if ( child.name == "neck" ) {
 				mm.transform2Bones.Add( child, "Neck" );
-				mm.initialRotation.Add( child, child.rotation );
+				mm.initialRotation.Add( child, child.localRotation );
 			}
 		}
 		b2jMaps.Add( "bvh_numediart", mm );
 
 		mm = new B2Jmapping();
 		foreach( Transform child in allChildren ) {
-			if ( child.name == "hips" ) {
+			if ( child.name == "forearm_L" ) {
 				mm.transform2Bones.Add( child, "Hips" );
-				mm.initialRotation.Add( child, child.rotation );
+				mm.initialRotation.Add( child, child.localRotation );
+			} else if ( child.name == "forearm_R" ) {
+				mm.transform2Bones.Add( child, "Hips" );
+				mm.initialRotation.Add( child, child.localRotation );
 			}
 		}
 		b2jMaps.Add( "tester", mm );
@@ -142,17 +193,23 @@ public class B2Jplayer : B2JgenericPlayer {
 //						initq.eulerAngles.y,
 //						initq.eulerAngles.z );
 
-					kv.Key.rotation = Quaternion.Euler(
+//					kv.Key.rotation = Quaternion.Euler(
+//						initeulers.x + neweulers.x,
+//						initeulers.y + neweulers.y,
+//						initeulers.z + neweulers.z );
+
+					kv.Key.localRotation = Quaternion.Euler(
 						initeulers.x + neweulers.x,
 						initeulers.y + neweulers.y,
 						initeulers.z + neweulers.z );
 
 //					kv.Key.localRotation = kv.Value;
+
 				}
-//				foreach( KeyValuePair< Transform, Vector3 > kv in ph.Retriever.positions ) {
-//					kv.Key.position = new Vector3( kv.Value.x, kv.Value.y, kv.Value.z );
+				foreach( KeyValuePair< Transform, Vector3 > kv in ph.Retriever.positions ) {
+//					kv.Key.localPosition = new Vector3( kv.Value.x * 0.001f, kv.Value.y * 0.001f, kv.Value.z * 0.001f );
 //					Debug.Log ( ph.ToString() + " / " + kv.Value.x + ", " + kv.Value.y + ", " + kv.Value.z );
-//				}
+				}
 			}
 		}
 

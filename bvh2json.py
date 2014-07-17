@@ -31,16 +31,14 @@ import json
 JSON_TYPE = "data"
 JSON_VERSION = "0.0"
 JSON_DESC = "generated with bvh2json.py - frankiezafe - july 2014"
-JSON_MODEL = "bvh_numediart"
 JSON_COMPRESS = False
 JSON_OPTIMISE = True
 
 bvhlist = [ 
-		[ "miko_ariaII02", "//bvhs/ariaII_02.bvh" ],
-		["clavaeolina_01", "//bvhs/clavaeolina_01.bvh" ],
-		[ "test", "//bvhs/test.bvh" ],
-		[ "hips", "//bvhs/hips.bvh" ],
-		[ "hips", "//bvhs/reallybasic.bvh" ]
+		# [ name, model, path ]
+		[ "miko_ariaII02", "bvh_numediart", "//bvhs/ariaII_02.bvh" ],
+		[ "clavaeolina_01", "bvh_numediart", "//bvhs/clavaeolina_01.bvh" ],
+		[ "reallybasic", "tester", "//bvhs/reallybasic.bvh" ]
 ]
 
 class BvhNode(object):
@@ -116,6 +114,7 @@ class BvhConverter():
 		self.BVH2BLENDERi = b2b.inverted()
 		
 		self.data = []
+		self.model = ""
 	
 	def exists( self ):
 		return True
@@ -276,7 +275,7 @@ class BvhConverter():
 		jsonData = {}
 		jsonData[ "type" ] = JSON_TYPE
 		jsonData[ "version" ] = JSON_VERSION
-		jsonData[ "model" ] = JSON_MODEL
+		jsonData[ "model" ] = self.model
 		jsonData[ "desc" ] = JSON_DESC
 		jsonData[ "name" ] = data.name
 		jsonData[ "origin" ] = fpath
@@ -505,30 +504,18 @@ class BvhConverter():
 	def load( self, bvhlist ):
 		for i in range( 0, len( bvhlist ) ):
 		
+			print( "bvh \"%s\" loading, %i of %i" % ( bvhlist[ i ][ 2 ],  ( i + 1 ), ( len( bvhlist ) ) ) )
 			tmpdata = BvhData( bvhlist[ i ][ 0 ] )
-			self.loadBvhData( tmpdata, bvhlist[ i ][ 1 ] )	
-			
-			print( "bvh_frame_time:", tmpdata.frametime )
-			
-			self.saveJsonData( bvhlist[ i ][ 1 ], tmpdata )
-			
-			print( "bvh \"{}\" loaded, remains {}/{}".format( tmpdata.name, ( len( bvhlist ) - ( i + 1 ) ), len( bvhlist ) ) )
+			self.model = bvhlist[ i ][ 1 ]
+			self.loadBvhData( tmpdata, bvhlist[ i ][ 2 ] )
+			# print( "bvh_frame_time:", tmpdata.frametime )
+			self.saveJsonData( bvhlist[ i ][ 2 ], tmpdata )
+		
+		print( "parsing of %i bvhs finished" % len( bvhlist ) )
 
 	def getQuaternion( self, bvhnode, frame ):
-	
-		roto = bvhnode.rot_order[0] * 100 + bvhnode.rot_order[1] * 10 + bvhnode.rot_order[2]
-		ero = 'ZYX'
-		if roto == 201:
-			ero = 'YXZ'
-		elif roto == 210:
-			ero = 'XYZ'
-		elif roto == 21:
-			ero = 'YZXZ'
-		elif roto == 102:
-			ero = 'ZXY'
-			
 		data = bvhnode.anim_data[ int( frame ) ]
-		q = Euler( ( data[ 3 ], data[ 4 ], data[ 5 ]  ), ero ).to_quaternion()
+		q = Euler( ( data[ 3 ], data[ 4 ], data[ 5 ]  ), bvhnode.rot_order_str ).to_quaternion()
 		return q
 
 BvhConverter().load( bvhlist )
