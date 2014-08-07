@@ -36,8 +36,8 @@ JSON_OPTIMISE = True
 
 bvhlist = [ 
 		# [ name, model, path ]
-		[ "miko_ariaII02", "bvh_numediart", "//bvhs/ariaII_02.bvh" ],
-		[ "clavaeolina_01", "bvh_numediart", "//bvhs/clavaeolina_01.bvh" ],
+		# [ "miko_ariaII02", "bvh_numediart", "//bvhs/ariaII_02.bvh" ],
+		# [ "clavaeolina_01", "bvh_numediart", "//bvhs/clavaeolina_01.bvh" ],
 		[ "reallybasic", "tester", "//bvhs/reallybasic.bvh" ]
 ]
 
@@ -515,6 +515,30 @@ class BvhConverter():
 
 	def getQuaternion( self, bvhnode, frame ):
 		data = bvhnode.anim_data[ int( frame ) ]
+		xp = 0
+		yp = 1
+		zp = 2
+		if bvhnode.rot_order_str == 'ZXY':
+			zp = 0
+			xp = 1
+			yp = 2
+		elif bvhnode.rot_order_str == 'ZYX':
+			zp = 0
+			yp = 1
+			xp = 2
+		elif bvhnode.rot_order_str == 'YXZ':
+			yp = 0
+			xp = 1
+			zp = 2
+		elif bvhnode.rot_order_str == 'YZX':
+			yp = 0
+			zp = 1
+			xp = 2
+		elif bvhnode.rot_order_str == 'XZY':
+			xp = 0
+			zp = 1
+			yp = 2
+		print( bvhnode.rot_order_str, xp, yp, zp )
 		q = Euler( ( data[ 3 ], data[ 4 ], data[ 5 ]  ), bvhnode.rot_order_str ).to_quaternion()
 		return q
 

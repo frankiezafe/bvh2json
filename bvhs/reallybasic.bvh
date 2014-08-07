@@ -2,7 +2,7 @@ HIERARCHY
 ROOT Hips
 {
 	OFFSET 0.000000 0.000000 0.000000 
-	CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+	CHANNELS 6 Xposition Yposition Zposition Zrotation Xrotation Yrotation
 	End Site
 	{
 		OFFSET	0.000000	5.0	0.000000
