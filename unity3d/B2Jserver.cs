@@ -82,14 +82,13 @@ public class B2Jserver: MonoBehaviour {
 //			loadingpath.Add( path );
 //		}
 
-		loadedpath.Add( path );
-
-		addNewRecord( B2Jparser.Instance.load ( path ) );
+		addNewRecord( B2Jparser.Instance.load ( path ), path );
 
 	}
 	
-	public void addNewRecord( B2Jrecord rec ) {
+	public void addNewRecord( B2Jrecord rec, string path ) {
 		if ( rec != null ) {
+			loadedpath.Add( path );
 			lock (m_Handle) {
 				records.Add( rec );
 			}

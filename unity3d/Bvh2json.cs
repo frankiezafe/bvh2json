@@ -65,10 +65,10 @@ namespace B2J {
 		public List< B2Jhierarchy > children;
 	}
 
-	public class B2Jmapping {
-		public Dictionary< UnityEngine.Transform, string> transform2Bones = new Dictionary<Transform, string> ();
-		public Dictionary< UnityEngine.Transform, Quaternion> initialRotation = new Dictionary<Transform, Quaternion> ();
-	}
+//	public class B2Jmapping {
+//		public Dictionary< UnityEngine.Transform, string> transform2Bones = new Dictionary<Transform, string> ();
+//		public Dictionary< UnityEngine.Transform, Quaternion> initialRotation = new Dictionary<Transform, Quaternion> ();
+//	}
 
 	public class B2Jretriever {
 		public string model;
@@ -188,36 +188,36 @@ namespace B2J {
 			}
 		}
 
-		public void setMap( Dictionary< string, B2Jmapping > mapmodel ) {
-
-			B2Jmapping mm = mapmodel [_record.model];
-			if ( mm != null ) {
-
-				_retriever = new B2Jretriever();
-				_retriever.model = _record.model;
-				_retriever.ids = new Dictionary< UnityEngine.Transform, int>();
-				_retriever.positions = new Dictionary< UnityEngine.Transform, Vector3>();
-				_retriever.rotations = new Dictionary< UnityEngine.Transform, Quaternion>();
-				_retriever.scales = new Dictionary< UnityEngine.Transform, Vector3>();
-
-				foreach( KeyValuePair< UnityEngine.Transform, string > kv in mm.transform2Bones ) {
-					string bname = kv.Value;
-					int bID = 0;
-					foreach( B2Jbone b in _record.bones ) {
-						if ( b.name == bname ) {
-							_retriever.ids.Add( kv.Key, bID );
-							_retriever.positions.Add( kv.Key, positions[ bID ] );
-							_retriever.rotations.Add( kv.Key, rotations[ bID ] );
-							_retriever.scales.Add( kv.Key, scales[ bID ] );
-							break;
-						}
-						bID++;
-					}
-				}
-
-			}
-
-		}
+//		public void setMap( Dictionary< string, B2Jmapping > mapmodel ) {
+//
+//			B2Jmapping mm = mapmodel [_record.model];
+//			if ( mm != null ) {
+//
+//				_retriever = new B2Jretriever();
+//				_retriever.model = _record.model;
+//				_retriever.ids = new Dictionary< UnityEngine.Transform, int>();
+//				_retriever.positions = new Dictionary< UnityEngine.Transform, Vector3>();
+//				_retriever.rotations = new Dictionary< UnityEngine.Transform, Quaternion>();
+//				_retriever.scales = new Dictionary< UnityEngine.Transform, Vector3>();
+//
+//				foreach( KeyValuePair< UnityEngine.Transform, string > kv in mm.transform2Bones ) {
+//					string bname = kv.Value;
+//					int bID = 0;
+//					foreach( B2Jbone b in _record.bones ) {
+//						if ( b.name == bname ) {
+//							_retriever.ids.Add( kv.Key, bID );
+//							_retriever.positions.Add( kv.Key, positions[ bID ] );
+//							_retriever.rotations.Add( kv.Key, rotations[ bID ] );
+//							_retriever.scales.Add( kv.Key, scales[ bID ] );
+//							break;
+//						}
+//						bID++;
+//					}
+//				}
+//
+//			}
+//
+//		}
 
 		public void update() {
 
@@ -353,19 +353,29 @@ namespace B2J {
 
 	public class B2JgenericPlayer : MonoBehaviour {
 		
-		public B2Jserver server;
-		protected List< B2Jplayhead > b2jPlayheads;
-		protected Dictionary< string, B2Jmapping > b2jMaps;
+		public B2Jserver B2J_server;
+		protected Dictionary< string, B2Jmap > B2J_maps;
+		protected List< B2Jplayhead > B2J_playheads;
 
 		public B2JgenericPlayer() {
-			server = null;
-			b2jPlayheads = new List< B2Jplayhead > ();
-			b2jMaps = new Dictionary< string, B2Jmapping > ();
+			B2J_server = null;
+			B2J_maps = new Dictionary< string, B2Jmap >();
+			B2J_playheads = new List< B2Jplayhead > ();
+		}
+
+		public void loadMapping( TextAsset asset ) {
+			B2Jmap map = new B2Jmap();
+			if ( map.load( asset, this ) ) {
+				if ( B2J_maps.ContainsKey( map.model ) ) {
+					Debug.Log( "A map with the same model as already been loaded! It will be overwritten by the current one: " + map.name );
+				}
+				B2J_maps.Add( map.model, map );
+			}
 		}
 
 		public B2Jplayhead getPlayhead( string name ) {
 
-			foreach( B2Jplayhead ph in b2jPlayheads )
+			foreach( B2Jplayhead ph in B2J_playheads )
 				if ( ph.Name == name )
 					return ph;
 
@@ -379,14 +389,14 @@ namespace B2J {
 
 		private void Synchronise() {
 
-			if (server != null) {
+			if (B2J_server != null) {
 
-				server.syncPlayheads( b2jPlayheads );
+				B2J_server.syncPlayheads( B2J_playheads );
 				// all playheads are now ok
-				foreach( B2Jplayhead ph in b2jPlayheads ) {
+				foreach( B2Jplayhead ph in B2J_playheads ) {
 
-					if ( ph.Retriever == null )
-						ph.setMap( b2jMaps );
+//					if ( ph.Retriever == null )
+//						ph.setMap( b2jMaps );
 
 					ph.update();
 
@@ -428,7 +438,7 @@ namespace B2J {
 			
 			TextAsset bvhj = Resources.Load( path ) as TextAsset;
 			if ( bvhj == null) {
-				Debug.Log ( "Bvh2jsonReader::" + path + " not loaded" );
+				Debug.Log ( "Bvh2jsonReader::" + path + " not found" );
 				return null;
 			} else {
 				Debug.Log ( "Bvh2jsonReader::" + path + " successfully loaded" );
@@ -812,5 +822,86 @@ namespace B2J {
 
 	}
 	#endregion
+
+	public class B2Jmap {
+
+		public string model;
+		public string name;
+		public string description;
+		public float version;
+		private Dictionary< string, Transform > transformByName;
+		private Dictionary< int, Transform > transformById;
+
+		public B2Jmap() {
+
+			transformByName = new Dictionary< string, Transform >();
+			transformById = new Dictionary< int, Transform >();
+
+		}
+
+		// pass the text assets containung the mapping and the game object (an avatar...) where the bones are
+		public bool load( TextAsset bvhj, B2JgenericPlayer obj ) { 
+
+			if ( bvhj == null) {
+				Debug.Log ( "B2Jmap:: not loaded" );
+				return false;
+			} else {
+				Debug.Log ( "B2Jmap:: '" + bvhj.name + "' successfully loaded" );
+			}
+
+			IDictionary data = ( IDictionary ) Json.Deserialize ( bvhj.ToString() );
+			if ( data == null) {
+				Debug.Log ( "Failed to parse " + bvhj.name );
+				return false;
+			}
+
+			if (System.String.Compare ( (string) data ["type"], "mapping") != 0) {
+				Debug.Log ( "B2J maps must have a type 'maaping'" );
+				return false;
+			}
+
+			model = (string) data[ "model" ];
+			name = (string) data[ "name" ];
+			description = (string) data[ "desc" ];
+			version = float.Parse( "" + data[ "version" ] );
+
+			IList bvh_bones = ( IList ) data[ "local" ];
+			IList transform_names = ( IList ) data[ "foreign" ];
+			if ( bvh_bones.Count != transform_names.Count ) {
+				Debug.Log ( "local count and foreign doesn't match! local: " + bvh_bones.Count +", foreign: "+ transform_names.Count );
+				return false;
+			}
+
+			// validation of foreigns
+			Transform[] all_transforms = obj.GetComponentsInChildren<Transform>();
+			for ( int i = 0; i < transform_names.Count; i++ ) {
+				foreach( Transform transform in all_transforms ) {
+					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
+						transformByName.Add( (string) bvh_bones[ i ], transform );
+						transformById.Add( i, transform );
+						break;
+					}
+				}
+			}
+			return true;
+
+		}
+
+		public Transform getTransformByName( string bvh_bone_name ) {
+			if ( !transformByName.ContainsKey( bvh_bone_name ) ) {
+				return null;
+			}
+			return transformByName[ bvh_bone_name ];
+		}
+		
+		public Transform getTransformById( int bvh_bone_id ) {
+			if ( !transformById.ContainsKey( bvh_bone_id ) ) {
+				return null;
+			}
+			return transformById[ bvh_bone_id ];
+		}
+
+	
+	}
 
 }
