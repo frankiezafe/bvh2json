@@ -199,6 +199,24 @@ namespace B2J {
 			}
 		}
 
+		public List< Quaternion > Rotations {
+			get {
+				return _rotations;
+			}
+		}
+		
+		public List< Vector3 > Positions {
+			get {
+				return _positions;
+			}
+		}
+		
+		public List< Vector3 > Scales {
+			get {
+				return _scales;
+			}
+		}
+
 		public void update() {
 
 			if ( !_active || _speed == 0 ) {
@@ -330,10 +348,30 @@ namespace B2J {
 		protected Dictionary< string, B2Jmap > B2J_maps;
 		protected List< B2Jplayhead > B2J_playheads;
 
+		protected Dictionary< Transform, Quaternion > localRotations;
+		protected Dictionary< Transform, Vector3 > localTranslations;
+		protected Dictionary< Transform, Vector3 > localScales;
+
 		public B2JgenericPlayer() {
+
 			B2J_server = null;
 			B2J_maps = new Dictionary< string, B2Jmap >();
 			B2J_playheads = new List< B2Jplayhead > ();
+
+			// making a copy of the current object rotations and orientations
+			localRotations = new Dictionary< Transform, Quaternion > ();
+			localTranslations = new Dictionary< Transform, Vector3 > ();
+			localScales = new Dictionary< Transform, Vector3 > ();
+
+		}
+
+		protected void init() {
+			Transform[] all_transforms = GetComponentsInChildren<Transform>();
+			foreach( Transform t in all_transforms ) {
+				localRotations.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
+				localTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
+				localScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+			}
 		}
 
 		public void loadMapping( TextAsset asset ) {
@@ -369,9 +407,132 @@ namespace B2J {
 			}
 		}
 
+		protected void apply() {
+
+			float totalWeight = 0;
+			foreach( B2Jplayhead ph in B2J_playheads ) {
+				totalWeight += ph.Weight;
+			}
+			if ( totalWeight == 0 ) {
+				return;
+			}
+			// storing all updated transforms in a temporary dict
+			Dictionary< Transform, Quaternion > updatedRots = new Dictionary<Transform, Quaternion>();
+			foreach( B2Jplayhead ph in B2J_playheads ) {
+				if ( ph.Weight == 0 ) {
+					continue;
+				}
+				// searching the map for this model
+				B2Jmap map = B2J_maps[ ph.Model ];
+				// no map found, no need to go further!
+				if ( map == null ) {
+					continue;
+				}
+				// no need to go over all bones, just the ones of the mapping
+				foreach ( KeyValuePair< int, Transform > pair in map.transformById ) {
+					int bid = pair.Key;
+					Transform t = pair.Value;
+					if ( !updatedRots.ContainsKey( t ) ) {
+						updatedRots.Add( t, Quaternion.identity );
+					}
+					Quaternion newrot = ph.Rotations[ bid ];
+					updatedRots[ t ] = Quaternion.Slerp( updatedRots[ t ], newrot, ph.Weight );
+				}
+			}
+
+			// and applying on the model
+			foreach ( KeyValuePair< Transform, Quaternion > pair in updatedRots ) {
+				Transform t = pair.Key;
+				Quaternion test = Quaternion.identity;
+				test = Quaternion.Slerp( test, pair.Value, 0.5f );
+				Quaternion newq = localRotations[ t ] * test;
+				t.rotation = test;
+			}
+
+		}
 		
 	}
 
+	public class B2Jmap {
+		
+		public string model;
+		public string name;
+		public string description;
+		public float version;
+		public Dictionary< string, Transform > transformByName;
+		public Dictionary< int, Transform > transformById;
+		
+		public B2Jmap() {
+			
+			transformByName = new Dictionary< string, Transform >();
+			transformById = new Dictionary< int, Transform >();
+			
+		}
+		
+		// pass the text assets containung the mapping and the game object (an avatar...) where the bones are
+		public bool load( TextAsset bvhj, B2JgenericPlayer obj ) { 
+			
+			if ( bvhj == null) {
+				Debug.Log ( "B2Jmap:: not loaded" );
+				return false;
+			} else {
+				Debug.Log ( "B2Jmap:: '" + bvhj.name + "' successfully loaded" );
+			}
+			
+			IDictionary data = ( IDictionary ) Json.Deserialize ( bvhj.ToString() );
+			if ( data == null) {
+				Debug.Log ( "Failed to parse " + bvhj.name );
+				return false;
+			}
+			
+			if (System.String.Compare ( (string) data ["type"], "mapping") != 0) {
+				Debug.Log ( "B2J maps must have a type 'maaping'" );
+				return false;
+			}
+			
+			model = (string) data[ "model" ];
+			name = (string) data[ "name" ];
+			description = (string) data[ "desc" ];
+			version = float.Parse( "" + data[ "version" ] );
+			
+			IList bvh_bones = ( IList ) data[ "local" ];
+			IList transform_names = ( IList ) data[ "foreign" ];
+			if ( bvh_bones.Count != transform_names.Count ) {
+				Debug.Log ( "local count and foreign doesn't match! local: " + bvh_bones.Count +", foreign: "+ transform_names.Count );
+				return false;
+			}
+			
+			// validation of foreigns
+			Transform[] all_transforms = obj.GetComponentsInChildren<Transform>();
+			for ( int i = 0; i < transform_names.Count; i++ ) {
+				foreach( Transform transform in all_transforms ) {
+					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
+						transformByName.Add( (string) bvh_bones[ i ], transform );
+						transformById.Add( i, transform );
+						break;
+					}
+				}
+			}
+			return true;
+			
+		}
+		
+		public Transform getTransformByName( string bvh_bone_name ) {
+			if ( !transformByName.ContainsKey( bvh_bone_name ) ) {
+				return null;
+			}
+			return transformByName[ bvh_bone_name ];
+		}
+		
+		public Transform getTransformById( int bvh_bone_id ) {
+			if ( !transformById.ContainsKey( bvh_bone_id ) ) {
+				return null;
+			}
+			return transformById[ bvh_bone_id ];
+		}
+		
+		
+	}
 
 	#endregion
 
@@ -515,6 +676,7 @@ namespace B2J {
 				List<float> qValues = convertListOfFloat ((IList)((IDictionary)keydata ["quaternions"]) ["values"]);
 				for (int i = 0; i < qIds.Count; i++) {
 					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+//					newkey.rotations[ qIds [i] ] = new Quaternion ( -qValues [i * 4 + 1], qValues [i * 4], qValues [i * 4 +2], qValues [i * 4 + 3] );
 				}
 			} else {
 				newkey.rotations = null;
@@ -785,86 +947,5 @@ namespace B2J {
 
 	}
 	#endregion
-
-	public class B2Jmap {
-
-		public string model;
-		public string name;
-		public string description;
-		public float version;
-		private Dictionary< string, Transform > _transformByName;
-		private Dictionary< int, Transform > _transformById;
-
-		public B2Jmap() {
-
-			_transformByName = new Dictionary< string, Transform >();
-			_transformById = new Dictionary< int, Transform >();
-
-		}
-
-		// pass the text assets containung the mapping and the game object (an avatar...) where the bones are
-		public bool load( TextAsset bvhj, B2JgenericPlayer obj ) { 
-
-			if ( bvhj == null) {
-				Debug.Log ( "B2Jmap:: not loaded" );
-				return false;
-			} else {
-				Debug.Log ( "B2Jmap:: '" + bvhj.name + "' successfully loaded" );
-			}
-
-			IDictionary data = ( IDictionary ) Json.Deserialize ( bvhj.ToString() );
-			if ( data == null) {
-				Debug.Log ( "Failed to parse " + bvhj.name );
-				return false;
-			}
-
-			if (System.String.Compare ( (string) data ["type"], "mapping") != 0) {
-				Debug.Log ( "B2J maps must have a type 'maaping'" );
-				return false;
-			}
-
-			model = (string) data[ "model" ];
-			name = (string) data[ "name" ];
-			description = (string) data[ "desc" ];
-			version = float.Parse( "" + data[ "version" ] );
-
-			IList bvh_bones = ( IList ) data[ "local" ];
-			IList transform_names = ( IList ) data[ "foreign" ];
-			if ( bvh_bones.Count != transform_names.Count ) {
-				Debug.Log ( "local count and foreign doesn't match! local: " + bvh_bones.Count +", foreign: "+ transform_names.Count );
-				return false;
-			}
-
-			// validation of foreigns
-			Transform[] all_transforms = obj.GetComponentsInChildren<Transform>();
-			for ( int i = 0; i < transform_names.Count; i++ ) {
-				foreach( Transform transform in all_transforms ) {
-					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
-						_transformByName.Add( (string) bvh_bones[ i ], transform );
-						_transformById.Add( i, transform );
-						break;
-					}
-				}
-			}
-			return true;
-
-		}
-
-		public Transform getTransformByName( string bvh_bone_name ) {
-			if ( !_transformByName.ContainsKey( bvh_bone_name ) ) {
-				return null;
-			}
-			return _transformByName[ bvh_bone_name ];
-		}
-		
-		public Transform getTransformById( int bvh_bone_id ) {
-			if ( !_transformById.ContainsKey( bvh_bone_id ) ) {
-				return null;
-			}
-			return _transformById[ bvh_bone_id ];
-		}
-
-	
-	}
 
 }
