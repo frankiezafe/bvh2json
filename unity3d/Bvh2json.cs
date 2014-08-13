@@ -65,20 +65,6 @@ namespace B2J {
 		public List< B2Jhierarchy > children;
 	}
 
-//	public class B2Jmapping {
-//		public Dictionary< UnityEngine.Transform, string> transform2Bones = new Dictionary<Transform, string> ();
-//		public Dictionary< UnityEngine.Transform, Quaternion> initialRotation = new Dictionary<Transform, Quaternion> ();
-//	}
-
-	public class B2Jretriever {
-		public string model;
-		public Dictionary< UnityEngine.Transform, int> ids;
-		public Dictionary< UnityEngine.Transform, Vector3> positions;
-		public Dictionary< UnityEngine.Transform, Quaternion> rotations;
-		public Dictionary< UnityEngine.Transform, Vector3> scales;
-
-	}
-
 	public enum B2Jloop {
 		B2JLOOPNONE = 0,
 		B2JLOOPNORMAL = 1,
@@ -93,14 +79,12 @@ namespace B2J {
 		private float _speed; // multiplier of time in millis
 		private B2Jrecord _record;
 		private float _weight;
-		private List<Vector3> positions; // same length as record.bones
-		private List<Quaternion> rotations; // same length as record.bones
-		private List<Vector3> scales; // same length as record.bones
+		private List< Vector3 > _positions; // same length as record.bones
+		private List< Quaternion > _rotations; // same length as record.bones
+		private List< Vector3 > _scales; // same length as record.bones
 
 		private float _cueIn;
 		private float _cueOut;
-
-		protected B2Jretriever _retriever;
 
 		// working values
 		Vector3 p1;
@@ -117,14 +101,13 @@ namespace B2J {
 
 			_loop = loop;
 			_record = rec;
-			_retriever = null;
-			positions = new List<Vector3> ();
-			rotations = new List<Quaternion> ();
-			scales = new List<Vector3> ();
+			_positions = new List<Vector3> ();
+			_rotations = new List<Quaternion> ();
+			_scales = new List<Vector3> ();
 			foreach (B2Jbone b in rec.bones) {
-				positions.Add( new Vector3() );
-				rotations.Add(  Quaternion.identity );
-				scales.Add( new Vector3() );
+				_positions.Add( new Vector3() );
+				_rotations.Add(  Quaternion.identity );
+				_scales.Add( new Vector3() );
 			}
 			_cueIn = _record.keys[ 0 ].timestamp;
 			_cueOut = _record.keys[ _record.keys.Count - 1 ].timestamp;
@@ -139,6 +122,13 @@ namespace B2J {
 				return _record.name;
 			}
 		}
+		
+		
+		public string Model {
+			get {
+				return _record.model;
+			}
+		}
 
 		public float Speed {
 			get {
@@ -146,12 +136,6 @@ namespace B2J {
 			}
 			set {
 				_speed = value;
-			}
-		}
-
-		public B2Jretriever Retriever {
-			get{
-				return _retriever;
 			}
 		}
 
@@ -169,7 +153,7 @@ namespace B2J {
 
 		public bool Active {
 			get{
-				if ( _retriever == null || !_active || _weight == 0 )
+				if ( !_active || _weight == 0 )
 					return false;
 				return true;
 			}
@@ -188,36 +172,32 @@ namespace B2J {
 			}
 		}
 
-//		public void setMap( Dictionary< string, B2Jmapping > mapmodel ) {
-//
-//			B2Jmapping mm = mapmodel [_record.model];
-//			if ( mm != null ) {
-//
-//				_retriever = new B2Jretriever();
-//				_retriever.model = _record.model;
-//				_retriever.ids = new Dictionary< UnityEngine.Transform, int>();
-//				_retriever.positions = new Dictionary< UnityEngine.Transform, Vector3>();
-//				_retriever.rotations = new Dictionary< UnityEngine.Transform, Quaternion>();
-//				_retriever.scales = new Dictionary< UnityEngine.Transform, Vector3>();
-//
-//				foreach( KeyValuePair< UnityEngine.Transform, string > kv in mm.transform2Bones ) {
-//					string bname = kv.Value;
-//					int bID = 0;
-//					foreach( B2Jbone b in _record.bones ) {
-//						if ( b.name == bname ) {
-//							_retriever.ids.Add( kv.Key, bID );
-//							_retriever.positions.Add( kv.Key, positions[ bID ] );
-//							_retriever.rotations.Add( kv.Key, rotations[ bID ] );
-//							_retriever.scales.Add( kv.Key, scales[ bID ] );
-//							break;
-//						}
-//						bID++;
-//					}
-//				}
-//
-//			}
-//
-//		}
+		public float CurrentTime {
+			get {
+				return _time;
+			}
+			set {
+				_time = value;
+			}
+		}
+
+		public float CueIn {
+			get {
+				return _cueIn;
+			}
+			set {
+				_cueIn = value;
+			}
+		}
+		
+		public float CueOut {
+			get {
+				return _cueOut;
+			}
+			set {
+				_cueOut = value;
+			}
+		}
 
 		public void update() {
 
@@ -248,18 +228,11 @@ namespace B2J {
 				}
 			}
 			
-			if ( _weight == 0 || _retriever == null ) {
+			if ( _weight == 0 ) {
 				return;
 			}
 
 			renderFrame();
-
-			// updating the retriever
-			foreach ( KeyValuePair< UnityEngine.Transform, int > kv in _retriever.ids ) {
-				_retriever.positions[ kv.Key ] = positions[ kv.Value ];
-				_retriever.rotations[ kv.Key ] = rotations[ kv.Value ];
-				_retriever.scales[ kv.Key ] = scales[ kv.Value ];
-			}
 
 			_time += Time.deltaTime * 1000 * _speed;
 
@@ -296,15 +269,15 @@ namespace B2J {
 				for( int i = 0; i < _record.bones.Count; i++ ) {
 					if ( _record.bones[ i ].positions_enabled ) {
 						p1 = above.positions[ i ];
-						positions[ i ] = new Vector3( p1.x, p1.y, p1.z );
+						_positions[ i ] = new Vector3( p1.x, p1.y, p1.z );
 					}
 					if ( _record.bones[ i ].rotations_enabled ) {
 						q1 = above.rotations[ i ];
-						rotations[ i ] = new Quaternion( q1.x, q1.y, q1.z, q1.w );
+						_rotations[ i ] = new Quaternion( q1.x, q1.y, q1.z, q1.w );
 					}
 					if ( _record.bones[ i ].scales_enabled ) {
 						s1 = above.scales[ i ];
-						scales[ i ] = new Vector3( s1.x, s1.y, s1.z );
+						_scales[ i ] = new Vector3( s1.x, s1.y, s1.z );
 					}
 				}
 
@@ -320,7 +293,7 @@ namespace B2J {
 					if ( _record.bones[ i ].positions_enabled ) {
 						p1 = below.positions[ i ];
 						p2 = above.positions[ i ];
-						positions[ i ] = new Vector3( 
+						_positions[ i ] = new Vector3( 
 						       p1.x * belowpc + p2.x * abovepc,
 						       p1.y * belowpc + p2.y * abovepc,
 						       p1.z * belowpc + p2.z * abovepc
@@ -330,13 +303,13 @@ namespace B2J {
 					if ( _record.bones[ i ].rotations_enabled ) {
 						q1 = below.rotations[ i ];
 						q2 = above.rotations[ i ];
-						rotations[ i ] = Quaternion.Slerp( q1, q2, abovepc );
+						_rotations[ i ] = Quaternion.Slerp( q1, q2, abovepc );
 					}
 
 					if ( _record.bones[ i ].scales_enabled ) {
 						s1 = below.scales[ i ];
 						s2 = above.scales[ i ];
-						scales[ i ] = new Vector3( 
+						_scales[ i ] = new Vector3( 
 						       s1.x * belowpc + s2.x * abovepc,
 						       s1.y * belowpc + s2.y * abovepc,
 						       s1.z * belowpc + s2.z * abovepc
@@ -378,32 +351,22 @@ namespace B2J {
 			foreach( B2Jplayhead ph in B2J_playheads )
 				if ( ph.Name == name )
 					return ph;
-
 			return null;
 
 		}
 
 		protected void sync() {
-			Synchronise ();
+			Synchronise();
 		}
 
 		private void Synchronise() {
-
-			if (B2J_server != null) {
-
+			if ( B2J_server != null ) {
 				B2J_server.syncPlayheads( B2J_playheads );
 				// all playheads are now ok
 				foreach( B2Jplayhead ph in B2J_playheads ) {
-
-//					if ( ph.Retriever == null )
-//						ph.setMap( b2jMaps );
-
 					ph.update();
-
 				}
-
 			}
-
 		}
 
 		
@@ -829,13 +792,13 @@ namespace B2J {
 		public string name;
 		public string description;
 		public float version;
-		private Dictionary< string, Transform > transformByName;
-		private Dictionary< int, Transform > transformById;
+		private Dictionary< string, Transform > _transformByName;
+		private Dictionary< int, Transform > _transformById;
 
 		public B2Jmap() {
 
-			transformByName = new Dictionary< string, Transform >();
-			transformById = new Dictionary< int, Transform >();
+			_transformByName = new Dictionary< string, Transform >();
+			_transformById = new Dictionary< int, Transform >();
 
 		}
 
@@ -877,8 +840,8 @@ namespace B2J {
 			for ( int i = 0; i < transform_names.Count; i++ ) {
 				foreach( Transform transform in all_transforms ) {
 					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
-						transformByName.Add( (string) bvh_bones[ i ], transform );
-						transformById.Add( i, transform );
+						_transformByName.Add( (string) bvh_bones[ i ], transform );
+						_transformById.Add( i, transform );
 						break;
 					}
 				}
@@ -888,17 +851,17 @@ namespace B2J {
 		}
 
 		public Transform getTransformByName( string bvh_bone_name ) {
-			if ( !transformByName.ContainsKey( bvh_bone_name ) ) {
+			if ( !_transformByName.ContainsKey( bvh_bone_name ) ) {
 				return null;
 			}
-			return transformByName[ bvh_bone_name ];
+			return _transformByName[ bvh_bone_name ];
 		}
 		
 		public Transform getTransformById( int bvh_bone_id ) {
-			if ( !transformById.ContainsKey( bvh_bone_id ) ) {
+			if ( !_transformById.ContainsKey( bvh_bone_id ) ) {
 				return null;
 			}
-			return transformById[ bvh_bone_id ];
+			return _transformById[ bvh_bone_id ];
 		}
 
 	

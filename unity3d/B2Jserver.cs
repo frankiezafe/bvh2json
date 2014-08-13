@@ -12,86 +12,34 @@ public class B2Jserver: MonoBehaviour {
 	private List<string> loadedpath;
 	private List<string> loadingpath;
 	private List<B2Jrecord> records;
-
-	private object m_Handle = new object();
-	private static volatile Boolean m_thread_stop;
-	Thread m_thread;
 	private int tcounter;
 
 	public B2Jserver() {
-		
 		loadedpath = new List<string> ();
 		loadingpath = new List<string> ();
 		records = new List<B2Jrecord> ();
-
-//		m_thread = new Thread( new System.Threading.ThreadStart( Background ) );
-//		m_thread.Start();
-//		m_thread_stop = false;
-
 	}
 
 	public void Start() {}
 
-	public void Update() {
-
-//		lock (m_Handle) {
-//			if ( loadingpath.Count == 0 && !m_thread_stop ) {
-//				m_thread_stop = true;
-//			} else if ( loadingpath.Count >= 0 && m_thread_stop ) {
-//				m_thread_stop = false;
-//			}
-//		}
-
-	}
+	public void Update() {}
 	
-	public void OnApplicationQuit() {
-//		m_thread.Abort();
-	}
+	public void OnApplicationQuit() {}
 
-	public void OnDestroy() {
-//		m_thread.Abort();
-	}
-
-	private void Background() {
-
-		while( !m_thread_stop ) {
-			Debug.Log ( "Background called " + tcounter );
-			string currentp = "";
-			lock (m_Handle) {
-				if( loadingpath.Count > 0 ) {
-					currentp = loadingpath[0];
-					loadingpath.Remove (currentp);
-					Debug.Log ("starting to load >> " + currentp);
-				}
-			}
-			Thread.Sleep( 1000 );
-			tcounter++;
-		}
-
-	}
+	public void OnDestroy() {}
 
 	public void load( string path ) {
-		
 		if ( loadedpath.Contains ( path ) ) {
 			Debug.Log ( "'" + path + "' already loaded" );
 			return;
 		}
-
-//		lock (m_Handle) {
-//			Debug.Log ( "'" + path + "' added in loading path" );
-//			loadingpath.Add( path );
-//		}
-
 		addNewRecord( B2Jparser.Instance.load ( path ), path );
-
 	}
 	
 	public void addNewRecord( B2Jrecord rec, string path ) {
 		if ( rec != null ) {
 			loadedpath.Add( path );
-			lock (m_Handle) {
-				records.Add( rec );
-			}
+			records.Add( rec );
 			Debug.Log ( "new record added: " + rec.name + ", " + records.Count + " record(s) loaded" );
 		}
 	}
