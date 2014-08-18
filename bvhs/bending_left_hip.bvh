@@ -1,0 +1,138 @@
+HIERARCHY
+ROOT Hips
+{
+	OFFSET	0.000000	0.000000	0.000000
+	CHANNELS 6 Xposition Yposition Zposition Zrotation Xrotation Yrotation
+	JOINT LeftUpLeg
+	{
+		OFFSET	7.620000	0.000000	0.000000
+		CHANNELS 3 Zrotation Xrotation Yrotation
+		JOINT LeftLeg
+		{
+			OFFSET	0.000000	-44.449999	0.000000
+			CHANNELS 3 Zrotation Xrotation Yrotation
+			JOINT LeftFoot
+			{
+				OFFSET	0.000000	-39.369999	0.000000
+				CHANNELS 3 Zrotation Xrotation Yrotation
+				JOINT LeftFootHeel
+				{
+					OFFSET	0.000000	-8.890000	-3.810000
+					CHANNELS 3 Zrotation Xrotation Yrotation
+					End Site
+					{
+						OFFSET	0.000000	0.000000	15.240000
+					}
+				}
+			}
+		}
+	}
+	JOINT RightUpLeg
+	{
+		OFFSET	-7.620000	0.000000	0.000000
+		CHANNELS 3 Zrotation Xrotation Yrotation
+		JOINT RightLeg
+		{
+			OFFSET	0.000000	-44.449999	0.000000
+			CHANNELS 3 Zrotation Xrotation Yrotation
+			JOINT RightFoot
+			{
+				OFFSET	0.000000	-39.369999	0.000000
+				CHANNELS 3 Zrotation Xrotation Yrotation
+				JOINT RightFootHeel
+				{
+					OFFSET	0.000000	-8.890000	-3.810000
+					CHANNELS 3 Zrotation Xrotation Yrotation
+					End Site
+					{
+						OFFSET	0.000000	0.000000	15.240000
+					}
+				}
+			}
+		}
+	}
+	JOINT Spine
+	{
+		OFFSET	0.000000	7.620000	-2.540000
+		CHANNELS 3 Zrotation Xrotation Yrotation
+		JOINT Spine1
+		{
+			OFFSET	0.000000	7.620000	0.000000
+			CHANNELS 3 Zrotation Xrotation Yrotation
+			JOINT LeftShoulder
+			{
+				OFFSET	7.620000	33.020000	2.540000
+				CHANNELS 3 Zrotation Xrotation Yrotation
+				JOINT LeftArm
+				{
+					OFFSET	12.700000	0.000000	0.000000
+					CHANNELS 3 Zrotation Xrotation Yrotation
+					JOINT LeftForeArm
+					{
+						OFFSET	0.000000	-30.480000	0.000000
+						CHANNELS 3 Zrotation Xrotation Yrotation
+						JOINT LeftHand
+						{
+							OFFSET	0.000000	-24.130000	0.000000
+							CHANNELS 3 Zrotation Xrotation Yrotation
+							End Site
+							{
+								OFFSET	0.000000	-17.780000	0.000000
+							}
+						}
+					}
+				}
+			}
+			JOINT RightShoulder
+			{
+				OFFSET	-7.620000	33.020000	2.540000
+				CHANNELS 3 Zrotation Xrotation Yrotation
+				JOINT RightArm
+				{
+					OFFSET	-12.700000	0.000000	0.000000
+					CHANNELS 3 Zrotation Xrotation Yrotation
+					JOINT RightForeArm
+					{
+						OFFSET	0.000000	-30.480000	0.000000
+						CHANNELS 3 Zrotation Xrotation Yrotation
+						JOINT RightHand
+						{
+							OFFSET	0.000000	-24.130000	0.000000
+							CHANNELS 3 Zrotation Xrotation Yrotation
+							End Site
+							{
+								OFFSET	0.000000	-17.780000	0.000000
+							}
+						}
+					}
+				}
+			}
+			JOINT Neck
+			{
+				OFFSET	0.000000	38.099999	2.540000
+				CHANNELS 3 Zrotation Xrotation Yrotation
+				JOINT Head
+				{
+					OFFSET	0.000000	16.510000	0.000000
+					CHANNELS 3 Zrotation Xrotation Yrotation
+					End Site
+					{
+						OFFSET	0.000000	10.160000	0.000000
+					}
+				}
+			}
+		}
+	}
+}
+MOTION
+Frames:    9
+Frame Time: 1
+46.657500	94.557521	-30.203970	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	-90.	-60.	-90.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	-90.	60.	-90.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	60.	60.	60.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	30.	30.	30.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
+46.657500	94.557521	-30.203970	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.

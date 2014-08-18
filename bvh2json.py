@@ -22,24 +22,54 @@
 # adaptation: frankiezafe.org
 
 import bpy
+import os,re
+import math
 from math import radians
 from mathutils import Vector, Euler, Matrix, Quaternion
 from collections import OrderedDict
 import locale
 import json
 
+JSON_MODEL = "bvh_numediart"
 JSON_TYPE = "data"
-JSON_VERSION = "0.0"
+JSON_VERSION = "0.1"
 JSON_DESC = "generated with bvh2json.py - frankiezafe - july 2014"
 JSON_COMPRESS = False
 JSON_OPTIMISE = True
 
-bvhlist = [ 
-		# [ name, model, path ]
-		# [ "miko_ariaII02", "bvh_numediart", "//bvhs/ariaII_02.bvh" ],
-		# [ "clavaeolina_01", "bvh_numediart", "//bvhs/clavaeolina_01.bvh" ],
-		[ "reallybasic", "tester", "//bvhs/reallybasic.bvh" ]
-]
+bvhpath = bpy.path.abspath( '//bvhs' )
+bvhlist = []
+
+def loadBvhs( path, subfolder = '' ):
+	global bvhlist
+	files = os.listdir( path + "/" + subfolder )
+	for f in files:
+		fp = path
+		fsub = ''
+		if subfolder != '':
+			fp += "/" + subfolder
+			fsub += subfolder + "/"
+		fp += "/"+ f
+		fsub += f
+		print( fp )
+		if os.path.isdir( fp ):
+			loadBvhs( path, fsub )
+		elif f.endswith(".bvh"):
+			bvhlist.append( [ f[:-4], JSON_MODEL, fp ] )
+
+loadBvhs( bvhpath )
+
+# exception for realy basic, who has model "tester"
+for i in range( 0, len( bvhlist ) ):
+	if bvhlist[ i ][ 0 ] == "reallybasic":
+		bvhlist[ i ][ 1 ] = "tester"
+	subpart = bvhlist[ i ][ 2 ][ len( bvhpath ) : ]
+	subpart = subpart.replace( '/', '_' )
+	print( subpart, bvhlist[ i ][ 0 ], bvhlist[ i ][ 1 ] )
+
+bvhlist = [[ "thomas_se_leve_02", JSON_MODEL, "//bvhs/thomas/se_lever/02.bvh" ]]
+# bvhlist = [[ "reallybasic", "tester", "//bvhs/reallybasic.bvh" ]]
+# bvhlist = [[ "rising_left_hip", JSON_MODEL, "//bvhs/bending_left_hip.bvh" ]]
 
 class BvhNode(object):
 	__slots__ = (
@@ -292,6 +322,9 @@ class BvhConverter():
 			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.x )
 			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.y )
 			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.z )
+		jsonData[ "rotation_order" ] = []
+		for i in data.nodes:
+			jsonData[ "rotation_order" ].append( data.nodes[ i ].rot_order_str )
 		
 		jsonData[ "hierarchy" ] = []
 		roots = self.seekOrigins( data.nodes )
@@ -300,7 +333,8 @@ class BvhConverter():
 		
 		jsonData[ "summary" ] = {}
 		jsonData[ "summary" ][ "positions" ] = list( self.dataframes[ "summary" ][ "positions" ]["bones"] )
-		jsonData[ "summary" ][ "quaternions" ] = list( self.dataframes[ "summary" ][ "quaternions" ]["bones"] )
+		jsonData[ "summary" ][ "eulers" ] = list( self.dataframes[ "summary" ][ "eulers" ]["bones"] )
+		# jsonData[ "summary" ][ "quaternions" ] = list( self.dataframes[ "summary" ][ "quaternions" ]["bones"] )
 		jsonData[ "summary" ][ "scales" ] = list( self.dataframes[ "summary" ][ "scales" ]["bones"] )
 		
 		jsonData[ "data" ] = []
@@ -336,9 +370,12 @@ class BvhConverter():
 		fData[ "positions" ] = {}
 		fData[ "positions" ]["bones"] = []
 		fData[ "positions" ]["values"] = []
-		fData[ "quaternions" ] = {}
-		fData[ "quaternions" ]["bones"] = []
-		fData[ "quaternions" ]["values"] = []
+		fData[ "eulers" ] = {}
+		fData[ "eulers" ]["bones"] = []
+		fData[ "eulers" ]["values"] = []
+		# fData[ "quaternions" ] = {}
+		# fData[ "quaternions" ]["bones"] = []
+		# fData[ "quaternions" ]["values"] = []
 		fData[ "scales" ] = {}
 		fData[ "scales" ]["bones"] = []
 		fData[ "scales" ]["values"] = []
@@ -350,13 +387,15 @@ class BvhConverter():
 		
 		if not JSON_OPTIMISE:
 			self.dataframes[ "summary" ][ "positions" ]["bones"].append( "all" )
-			self.dataframes[ "summary" ][ "quaternions" ]["bones"].append( "all" )
+			self.dataframes[ "summary" ][ "eulers" ]["bones"].append( "all" )
+			# self.dataframes[ "summary" ][ "quaternions" ]["bones"].append( "all" )
 			# NO SCALING
 		
 		for frame in range( int( data.maxframe ) ):
 		
 			allpositions = {}
-			allquaterions = {}
+			alleulers = {}
+			# allquaterions = {}
 			
 			frameData = self.newFrameData()
 			frameData[ "time" ] = frame * data.frametime * 1000.0
@@ -367,22 +406,28 @@ class BvhConverter():
 				node = data.nodes[ n ]
 				d = node.anim_data[ int( frame ) ]
 				allpositions[ n ] = Vector( ( d[ 0 ], d[ 1 ], d[ 2 ] ) )
-				allquaterions[ n ] = self.getQuaternion( node, frame )
+				alleulers[ n ] = Vector( ( d[ 3 ] * 180 / math.pi, d[ 4 ] * 180 / math.pi, d[ 5 ] * 180 / math.pi ) )
+				# allquaterions[ n ] = self.getQuaternion( node, frame )
 				
 			if JSON_OPTIMISE:
 			
 				i = 0
 				pchanged = {}
-				qchanged = {}
-				emptyq = Euler( ( 0,0,0 ), "XYZ" ).to_quaternion()
-				emptyv = Vector( ( 0,0,0 ) )
+				# qchanged = {}
+				echanged = {}
+				# emptyq = Euler( ( 0,0,0 ), "XYZ" ).to_quaternion()
+				# emptyv = Vector( ( 0,0,0 ) )
 				
 				for n in data.nodes:
 					if self.previousDFrame is not 0:
 						if self.previousDFrame[ "positions" ][ n ] != allpositions[ n ]:
 							pchanged[ n ] = i
+						if self.previousDFrame[ "eulers" ][ n ] != alleulers[ n ]:
+							echanged[ n ] = i
+						'''						
 						if not self.compareQuats( self.previousDFrame[ "quaternions" ][ n ], allquaterions[ n ] ):
 							qchanged[ n ] = i
+						'''						
 						'''
 						elif self.previousDFrame is 0:
 							if allpositions[ n ] != emptyv:
@@ -392,11 +437,13 @@ class BvhConverter():
 						'''
 					else:
 						pchanged[ n ] = i
-						qchanged[ n ] = i
+						echanged[ n ] = i
+						# qchanged[ n ] = i
 					i += 1
 				
 				pchanged = self.sortDict( pchanged )
-				qchanged = self.sortDict( qchanged )
+				echanged = self.sortDict( echanged )
+				# qchanged = self.sortDict( qchanged )
 				
 				# adding new bones that have changed in the summary
 				for n in pchanged:
@@ -407,6 +454,16 @@ class BvhConverter():
 							break
 					if not found:
 						self.dataframes[ "summary" ][ "positions" ]["bones"].append( pchanged[ n ] )
+
+				for n in echanged:
+					found = False
+					for nId in self.dataframes[ "summary" ][ "eulers" ]["bones"]:
+						if nId == echanged[ n ]:
+							found = True
+							break
+					if not found:
+						self.dataframes[ "summary" ][ "eulers" ]["bones"].append( echanged[ n ] )
+				'''
 				for n in qchanged:
 					found = False
 					for nId in self.dataframes[ "summary" ][ "quaternions" ]["bones"]:
@@ -415,7 +472,8 @@ class BvhConverter():
 							break
 					if not found:
 						self.dataframes[ "summary" ][ "quaternions" ]["bones"].append( qchanged[ n ] )			
-			
+				'''
+
 				if len( pchanged ) == len( data.nodes ):
 					frameData[ "positions" ]["bones"].append( "all" )
 					for n in pchanged:
@@ -430,6 +488,21 @@ class BvhConverter():
 						frameData[ "positions" ]["values"].append( allpositions[ n ].y )
 						frameData[ "positions" ]["values"].append( allpositions[ n ].z )
 				
+				if len( echanged ) == len( data.nodes ):
+					frameData[ "eulers" ]["bones"].append( "all" )
+					for n in echanged:
+						frameData[ "eulers" ]["values"].append( alleulers[ n ].x )
+						frameData[ "eulers" ]["values"].append( alleulers[ n ].y )
+						frameData[ "eulers" ]["values"].append( alleulers[ n ].z )
+				elif len( echanged ) != 0:
+					for n in echanged:
+						frameData[ "eulers" ]["bones"].append( echanged[ n ] )
+					for n in echanged:
+						frameData[ "eulers" ]["values"].append( alleulers[ n ].x )
+						frameData[ "eulers" ]["values"].append( alleulers[ n ].y )
+						frameData[ "eulers" ]["values"].append( alleulers[ n ].z )
+
+				'''
 				if len( qchanged ) == len( data.nodes ):
 					frameData[ "quaternions" ]["bones"].append( "all" )
 					for n in qchanged:
@@ -445,34 +518,46 @@ class BvhConverter():
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
 						frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
+				'''
 
 			else:
+
 				frameData[ "positions" ]["bones"].append( "all" )
 				for n in allpositions:
 					frameData[ "positions" ]["values"].append( allpositions[ n ].x )
 					frameData[ "positions" ]["values"].append( allpositions[ n ].y )
 					frameData[ "positions" ]["values"].append( allpositions[ n ].z )
+				frameData[ "eulers" ]["bones"].append( "all" )
+				for n in alleulers:
+					frameData[ "eulers" ]["values"].append( alleulers[ n ].x )
+					frameData[ "eulers" ]["values"].append( alleulers[ n ].y )
+					frameData[ "eulers" ]["values"].append( alleulers[ n ].z )
+				'''
 				frameData[ "quaternions" ]["bones"].append( "all" )
 				for n in allquaterions:
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].x )
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].y )
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].z )
 					frameData[ "quaternions" ]["values"].append( allquaterions[ n ].w ) 
+				'''
 				
 			if JSON_OPTIMISE:
 				self.previousDFrame = {}
 				self.previousDFrame[ "positions" ] = dict( allpositions )
-				self.previousDFrame[ "quaternions" ] = dict( allquaterions )
+				self.previousDFrame[ "eulers" ] = dict( alleulers )
+				# self.previousDFrame[ "quaternions" ] = dict( allquaterions )
 		
 			self.dataframes[ "data" ].append( dict( frameData ) )
 		
 		self.dataframes[ "summary" ][ "positions" ]["bones"].sort()
-		self.dataframes[ "summary" ][ "quaternions" ]["bones"].sort()
+		self.dataframes[ "summary" ][ "eulers" ]["bones"].sort()
+		# self.dataframes[ "summary" ][ "quaternions" ]["bones"].sort()
 		
 		if JSON_OPTIMISE:
 			self.dataframes[ "framescount" ] = 0
 			for d in self.dataframes[ "data" ]:
-				if len( d[ "positions" ]["bones"] ) != 0 or len( d[ "quaternions" ]["bones"] ) != 0 or len( d[ "scales" ]["bones"] ) != 0:
+				# if len( d[ "positions" ]["bones"] ) != 0 or len( d[ "eulers" ]["bones"] ) != 0  or len( d[ "quaternions" ]["bones"] ) != 0 or len( d[ "scales" ]["bones"] ) != 0:
+				if len( d[ "positions" ]["bones"] ) != 0 or len( d[ "eulers" ]["bones"] ) != 0 or len( d[ "scales" ]["bones"] ) != 0:
 					self.dataframes[ "framescount" ] += 1
 				else:
 					d["EMPTY"] = True
@@ -515,31 +600,23 @@ class BvhConverter():
 
 	def getQuaternion( self, bvhnode, frame ):
 		data = bvhnode.anim_data[ int( frame ) ]
-		xp = 0
-		yp = 1
-		zp = 2
-		if bvhnode.rot_order_str == 'ZXY':
-			zp = 0
-			xp = 1
-			yp = 2
-		elif bvhnode.rot_order_str == 'ZYX':
-			zp = 0
-			yp = 1
-			xp = 2
-		elif bvhnode.rot_order_str == 'YXZ':
-			yp = 0
-			xp = 1
-			zp = 2
-		elif bvhnode.rot_order_str == 'YZX':
-			yp = 0
-			zp = 1
-			xp = 2
-		elif bvhnode.rot_order_str == 'XZY':
-			xp = 0
-			zp = 1
-			yp = 2
-		print( bvhnode.rot_order_str, xp, yp, zp )
-		q = Euler( ( data[ 3 ], data[ 4 ], data[ 5 ]  ), bvhnode.rot_order_str ).to_quaternion()
+		xrot = data[ 3 ]
+		yrot = data[ 4 ]
+		zrot = data[ 5 ]
+		# unity3D is left handed => angles must be adapted
+		# xrot = -math.atan2( math.sin( xrot ), -math.cos( xrot ) )
+		# yrot = math.atan2( -math.sin( yrot ), math.cos( yrot ) )
+		# yrot *= math.atan2( -math.sin( yrot ), math.cos( yrot ) )
+		# yrot *= -1		
+		# zrot *= -1
+		# print( ( xrot * 180 / math.pi ), ( yrot * 180 / math.pi ), ( zrot * 180 / math.pi ) )
+		q = Euler( ( xrot, yrot, zrot ), bvhnode.rot_order_str ).to_quaternion()
+		'''
+		if ( data[ 3 ] != 0 or data[ 4 ] != 0 or data[ 5 ] != 0 ):
+			euls = q.to_euler( bvhnode.rot_order_str )
+			print( "data:", round( data[ 3 ] / math.pi * 180 ), round( data[ 4 ] / math.pi * 180 ), round( data[ 5 ] / math.pi * 180 ) )
+			print( "eulers:", round( euls.x / math.pi * 180 ), round(euls.y / math.pi * 180 ), round(euls.z / math.pi * 180 ) )
+		'''
 		return q
 
 BvhConverter().load( bvhlist )

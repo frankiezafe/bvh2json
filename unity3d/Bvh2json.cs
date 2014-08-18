@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+using System;
 using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,6 +23,7 @@ namespace B2J {
 
 	public class B2Jbone {
 		public string name;
+		public string rotation_order;
 		public B2Jbone parent;
 		public List<B2Jbone> children;
 		public Vector3 rest;
@@ -217,7 +219,7 @@ namespace B2J {
 			}
 		}
 
-		public void update() {
+		public void update( bool interpolation ) {
 
 			if ( !_active || _speed == 0 ) {
 				// not ready to use, create mapping or reactivate...
@@ -250,13 +252,13 @@ namespace B2J {
 				return;
 			}
 
-			renderFrame();
+			renderFrame( interpolation );
 
 			_time += Time.deltaTime * 1000 * _speed;
 
 		}
 		
-		private void renderFrame() {
+		private void renderFrame( bool interpolation ) {
 
 			// seeking frames
 			B2Jkey below = null;
@@ -282,7 +284,7 @@ namespace B2J {
 				Debug.LogError ( "Impossible to find frames at this timecode!!!: " + _time );
 			}
 
-			if ( above.timestamp == _time || below == null ) {
+			if ( above.timestamp == _time || below == null || !interpolation ) {
 				// cool, it's easy ( but rare )
 				for( int i = 0; i < _record.bones.Count; i++ ) {
 					if ( _record.bones[ i ].positions_enabled ) {
@@ -352,6 +354,8 @@ namespace B2J {
 		protected Dictionary< Transform, Vector3 > localTranslations;
 		protected Dictionary< Transform, Vector3 > localScales;
 
+		protected bool interpolate;
+
 		public B2JgenericPlayer() {
 
 			B2J_server = null;
@@ -362,6 +366,8 @@ namespace B2J {
 			localRotations = new Dictionary< Transform, Quaternion > ();
 			localTranslations = new Dictionary< Transform, Vector3 > ();
 			localScales = new Dictionary< Transform, Vector3 > ();
+
+			interpolate = true;
 
 		}
 
@@ -402,7 +408,7 @@ namespace B2J {
 				B2J_server.syncPlayheads( B2J_playheads );
 				// all playheads are now ok
 				foreach( B2Jplayhead ph in B2J_playheads ) {
-					ph.update();
+					ph.update( interpolate );
 				}
 			}
 		}
@@ -442,11 +448,53 @@ namespace B2J {
 
 			// and applying on the model
 			foreach ( KeyValuePair< Transform, Quaternion > pair in updatedRots ) {
-				Transform t = pair.Key;
-				Quaternion test = Quaternion.identity;
-				test = Quaternion.Slerp( test, pair.Value, 0.5f );
-				Quaternion newq = localRotations[ t ] * test;
-				t.rotation = test;
+
+				pair.Key.localRotation = localRotations[ pair.Key ] * pair.Value;
+//				pair.Key.localRotation = pair.Value;
+				
+//				Transform t = pair.Key;
+//				Quaternion test = Quaternion.identity;
+//				test = Quaternion.Slerp( test, pair.Value, 0.5f );
+//				Quaternion newq = localRotations[ t ] * pair.Value;
+//				t.rotation = newq;
+//				t.localRotation = pair.Value;
+//				t.localRotation = localRotations[ t ];
+
+//				Matrix4x4 restmat = new Matrix4x4();
+//				restmat.SetTRS( Vector3.zero, localRotations[ t ], Vector3.one );
+//				Matrix4x4 restmatI = restmat.inverse;
+//				Matrix4x4 newmat = new Matrix4x4();
+//				newmat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
+//				newmat = restmatI * newmat * restmat;
+//				t.localRotation = Quaternion.LookRotation( newmat.GetColumn(2), newmat.GetColumn(1) );
+
+				/*
+					// BVH SPACE
+					Quaternion q = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+					Matrix4x4 BVH2UNITY = Matrix4x4.identity;
+
+					BVH2UNITY.m00 = 1;
+					BVH2UNITY.m01 = 0;
+					BVH2UNITY.m02 = 0;
+
+					BVH2UNITY.m10 = 0;
+					BVH2UNITY.m11 = 1;
+					BVH2UNITY.m12 = 0;
+
+					BVH2UNITY.m20 = 0;
+					BVH2UNITY.m21 = 0;
+					BVH2UNITY.m22 = -1;
+
+					Matrix4x4 BVH2UNITYi = BVH2UNITY.inverse;
+					Matrix4x4 conv = new Matrix4x4();
+					conv.SetTRS( Vector3.zero, q, Vector3.one );
+					conv = BVH2UNITYi * conv * BVH2UNITY;
+					q = Quaternion.LookRotation( conv.GetColumn(2), conv.GetColumn(1) );
+
+					newkey.rotations[ qIds [i] ] = q;
+					*/
+
+
 			}
 
 		}
@@ -550,11 +598,12 @@ namespace B2J {
 		private List< B2Jhierarchy > tmphierarchies; // used to decompress hierarchy
 		private bool summary_p_all;
 		private List<int> summary_p; // contains the list of bones positions
-		private bool summary_q_all;
-		private List<int> summary_q;
+		private bool summary_euler_all;
+		private List<int> summary_euler;
 		private bool summary_s_all;
 		private List<int> summary_s;
 		private List<int> idsFullList;
+		private List<string> summary_rotation_order;
 		
 		private B2Jparser() {}
 
@@ -575,10 +624,12 @@ namespace B2J {
 			}
 
 			idsFullList = new List<int> ();
-
 			tmphierarchies = new List< B2Jhierarchy > ();
+			summary_rotation_order = new List<string> ();
+
 			parseHierarchy ( (IList) data["hierarchy"], tmphierarchies );
 			parseSummary( (IDictionary) data["summary"] );
+			parseRotationOrder ((IList) data ["rotation_order"]);
 
 			B2Jrecord rec = new B2Jrecord();
 			rec.type = "" + data[ "type" ];
@@ -595,11 +646,11 @@ namespace B2J {
 
 			tmphierarchies.Clear ();
 			summary_p.Clear ();
-			summary_q.Clear ();
+			summary_euler.Clear ();
 			summary_s.Clear ();
 			tmphierarchies = null;
 			summary_p = null;
-			summary_q = null;
+			summary_euler = null;
 			summary_s = null;
 
 			return rec;
@@ -656,7 +707,7 @@ namespace B2J {
 			}
 
 			// rotations list
-			if (summary_q.Count > 0) {
+			if (summary_euler.Count > 0) {
 				newkey.rotations = new List<Quaternion> ();
 				for (int i = 0; i < bones.Count; i++) {
 					if ( previouskey == null )
@@ -671,12 +722,160 @@ namespace B2J {
 					}
 					*/
 				}
-				List<int> qIds = convertListOfIndex ((IList)((IDictionary)keydata ["quaternions"]) ["bones"]);
 
-				List<float> qValues = convertListOfFloat ((IList)((IDictionary)keydata ["quaternions"]) ["values"]);
-				for (int i = 0; i < qIds.Count; i++) {
-					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-//					newkey.rotations[ qIds [i] ] = new Quaternion ( -qValues [i * 4 + 1], qValues [i * 4], qValues [i * 4 +2], qValues [i * 4 + 3] );
+				List<int> eulIds = convertListOfIndex ( (IList)( ( IDictionary)keydata ["eulers"] ) ["bones"] );
+				List<float> eulValues = convertListOfFloat ( (IList)( ( IDictionary)keydata ["eulers"] ) ["values"] );
+
+				for (int i = 0; i < eulIds.Count; i++ ) {
+
+					Quaternion q = Quaternion.identity;
+					Vector3 eulers = new Vector3( eulValues [i * 3], eulValues [i * 3 + 1], eulValues [i * 3 + 2] );
+					eulers.z *= -1;
+//					string roto = summary_rotation_order[ eulIds[i] ];
+//					Debug.Log( eulIds[i] +" rot order: " + roto );
+					q.eulerAngles = eulers;
+					newkey.rotations[ eulIds[i] ] = q;
+
+//					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+//					Vector3 euls = newkey.rotations[ qIds [i] ].eulerAngles;
+//					Debug.Log ( qIds [i] + "eulers = " + euls.x +", " + euls.y +", " + euls.z );
+
+					// conversion form right 2 left handed
+//					Quaternion q = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+//					Matrix4x4 mat = new Matrix4x4();
+//					mat.SetTRS( Vector3.zero, q, Vector3.one );
+//
+//					Matrix4x4 matR2L = Matrix4x4.identity;
+//					matR2L.m11 = -1;
+//					matR2L.m22 = -1;
+//					Matrix4x4 matR2Li = matR2L.inverse;
+//
+//					mat = mat * matR2L;
+//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) );
+//
+//					// correction
+//					Matrix4x4 matR2L = Matrix4x4.identity;
+//					matR2L.m11 = -1;
+//					Matrix4x4 matR2Li = matR2L.inverse;
+//
+//					matR2L = matR2Li * mat * matR2L;
+//
+//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( matR2L.GetColumn(2), matR2L.GetColumn(1) );
+
+//					Matrix4x4 matR2L = Matrix4x4.identity;
+
+// ref: http://stackoverflow.com/questions/1263072/changing-a-matrix-from-right-handed-to-left-handed-coordinate-system/1264880#1264880
+/*
+
+{ m00, m01, m02, m03 }
+{ m10, m11, m12, m13 }
+{ m20, m21, m22, m23 }
+{ m30, m31, m32, m33 }
+
+{ rx, ry, rz, 0 }  
+{ ux, uy, uz, 0 }  
+{ lx, ly, lz, 0 }  
+{ px, py, pz, 1 }
+
+To change it from left to right or right to left, flip it like this:
+
+{ rx, rz, ry, 0 }  
+{ lx, lz, ly, 0 }  
+{ ux, uz, uy, 0 }  
+{ px, pz, py, 1 }
+
+*/
+//					matR2L.m00 = mat.m00;
+//					matR2L.m01 = mat.m02;
+//					matR2L.m02 = mat.m01;
+//					matR2L.m10 = mat.m20;
+//					matR2L.m11 = mat.m22;
+//					matR2L.m12 = mat.m21;
+//					matR2L.m20 = mat.m10;
+//					matR2L.m21 = mat.m12;
+//					matR2L.m22 = mat.m11;
+
+// ref: http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+//					float qx, qy, qz, qw;
+//
+//					float tr = matR2L.m00 + matR2L.m11 + matR2L.m22;
+//					if (tr > 0) { 
+//						float S = (float) Math.Sqrt( tr + 1.0 ) * 2; // S=4*qw 
+//						qw = 0.25f * S;
+//						qx = (matR2L.m21 - matR2L.m12) / S;
+//						qy = (matR2L.m02 - matR2L.m20) / S; 
+//						qz = (matR2L.m10 - matR2L.m01) / S; 
+//					} else if ((matR2L.m00 > matR2L.m11)&(matR2L.m00 > matR2L.m22)) { 
+//						float S = (float) Math.Sqrt( 1.0 + matR2L.m00 - matR2L.m11 - matR2L.m22 ) * 2; // S=4*qx 
+//						qw = (matR2L.m21 - matR2L.m12) / S;
+//						qx = 0.25f * S;
+//						qy = (matR2L.m01 + matR2L.m10) / S; 
+//						qz = (matR2L.m02 + matR2L.m20) / S; 
+//					} else if (matR2L.m11 > matR2L.m22) { 
+//						float S = (float) Math.Sqrt( 1.0 + matR2L.m11 - matR2L.m00 - matR2L.m22 ) * 2; // S=4*qy
+//						qw = (matR2L.m02 - matR2L.m20) / S;
+//						qx = (matR2L.m01 + matR2L.m10) / S; 
+//						qy = 0.25f * S;
+//						qz = (matR2L.m12 + matR2L.m21) / S; 
+//					} else { 
+//						float S = (float) Math.Sqrt( 1.0 + matR2L.m22 - matR2L.m00 - matR2L.m11 ) * 2; // S=4*qz
+//						qw = (matR2L.m10 - matR2L.m01) / S;
+//						qx = (matR2L.m02 + matR2L.m20) / S;
+//						qy = (matR2L.m12 + matR2L.m21) / S;
+//						qz = 0.25f * S;
+//					}
+//					newkey.rotations[ qIds [i] ] = new Quaternion( qx, qy, qz, qw );
+
+//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) );
+
+//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( matR2L.GetColumn(2), matR2L.GetColumn(1) );
+
+					// RIGHT 2 LEFT HANDED
+//					Quaternion lq = new Quaternion ( (float) Math.Sqrt(2) * 0.5f, (float) Math.Sqrt(2) * 0.5f, 0, 0 );
+//					Quaternion rq = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+
+					// BVH SPACE
+//					Quaternion q = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+//					Matrix4x4 BVH2UNITY = Matrix4x4.identity;
+//
+//					BVH2UNITY.m00 = 1;
+//					BVH2UNITY.m01 = 0;
+//					BVH2UNITY.m02 = 0;
+//
+//					BVH2UNITY.m10 = 0;
+//					BVH2UNITY.m11 = 1;
+//					BVH2UNITY.m12 = 0;
+//
+//					BVH2UNITY.m20 = 0;
+//					BVH2UNITY.m21 = 0;
+//					BVH2UNITY.m22 = 1;
+//
+//					Matrix4x4 BVH2UNITYi = BVH2UNITY.inverse;
+//					Matrix4x4 conv = new Matrix4x4();
+//					conv.SetTRS( Vector3.zero, q, Vector3.one );
+//					conv = BVH2UNITYi * conv * BVH2UNITY;
+//					q = Quaternion.LookRotation( conv.GetColumn(2), conv.GetColumn(1) );
+
+//					newkey.rotations[ qIds [i] ] = q;
+
+//					newkey.rotations[ qIds [i] ] = rq * lq;
+
+//					Quaternion tmp = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+//					Vector3 eq = tmp.eulerAngles;
+//					eq.y = (float) Math.Atan2( Math.Cos( eq.y / 180.0 * Math.PI ), Math.Sin( eq.y / 180.0 * Math.PI ) );
+//					eq.y *= -1;
+//					Quaternion newq = new Quaternion();
+//					newq.eulerAngles = eq;
+//					newkey.rotations[ qIds [i] ] = newq;
+
+//					Quaternion tmp = new Quaternion( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
+//					Vector3 eq = tmp.eulerAngles;
+//					eq.y *= -1;
+//					eq.z *= -1;
+//					Quaternion newq = new Quaternion();
+//					newq.eulerAngles = eq;
+//					newkey.rotations[ qIds [i] ] = newq;
+
 				}
 			} else {
 				newkey.rotations = null;
@@ -739,11 +938,11 @@ namespace B2J {
 				summary_p_all = true;
 			}
 			
-			summary_q_all = false;
-			summary_q = convertListOfIndex( ( IList ) summary[ "quaternions" ] );
-			if ( summary_q.Count > 0 && summary_q[ 0 ] == -1 ) {
-				summary_q.Clear();
-				summary_q_all = true;
+			summary_euler_all = false;
+			summary_euler = convertListOfIndex( ( IList ) summary[ "eulers" ] );
+			if ( summary_euler.Count > 0 && summary_euler[ 0 ] == -1 ) {
+				summary_euler.Clear();
+				summary_euler_all = true;
 			}
 			
 			summary_s_all = false;
@@ -751,6 +950,14 @@ namespace B2J {
 			if ( summary_s.Count > 0 && summary_s[ 0 ] == -1 ) {
 				summary_s.Clear();
 				summary_s_all = true;
+			}
+
+		}
+
+		private void parseRotationOrder( IList torOrder ) {
+
+			for (int i = 0; i < torOrder.Count; i++) {
+				summary_rotation_order.Add( torOrder[ i ].ToString() );
 			}
 
 		}
@@ -769,6 +976,7 @@ namespace B2J {
 				string bname = "" + dbs[ i ];
 				B2Jbone newb = new B2Jbone();
 				newb.name = bname;
+				newb.rotation_order = summary_rotation_order[ i ];
 				newb.children = new List<B2Jbone>();
 				newb.parent = null;
 				newb.rest = new Vector3( float.Parse( "" + rests[ ( i * 3 ) ] ), float.Parse( "" + rests[ ( i * 3 ) + 1 ] ), float.Parse( "" + rests[ ( i * 3 ) + 2 ] ) );
@@ -778,7 +986,7 @@ namespace B2J {
 				if ( summary_p.Contains( i ) || summary_p_all ) {
 					newb.positions_enabled = true;
 				}
-				if ( summary_q.Contains( i ) || summary_q_all ) {
+				if ( summary_euler.Contains( i ) || summary_euler_all ) {
 					newb.rotations_enabled = true;
 				}
 				if ( summary_s.Contains( i ) || summary_s_all ) {
@@ -810,12 +1018,12 @@ namespace B2J {
 			}
 
 			// adapting summaries lists
-			if ( summary_p_all || summary_q_all || summary_s_all ) {
+			if ( summary_p_all || summary_euler_all || summary_s_all ) {
 				if ( summary_p_all ) {
 					summary_p.Clear();
 				}
-				if ( summary_q_all ) {
-					summary_q.Clear();
+				if ( summary_euler_all ) {
+					summary_euler.Clear();
 				}
 				if ( summary_s_all ) {
 					summary_s.Clear();
@@ -824,8 +1032,8 @@ namespace B2J {
 					if ( summary_p_all ) {
 						summary_p.Add( i );
 					}
-					if ( summary_q_all ) {
-						summary_q.Add( i );
+					if ( summary_euler_all ) {
+						summary_euler.Add( i );
 					}
 					if ( summary_s_all ) {
 						summary_s.Add( i );
