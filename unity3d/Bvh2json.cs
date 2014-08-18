@@ -421,9 +421,12 @@ namespace B2J {
 			}
 			if ( totalWeight == 0 ) {
 				return;
+			} else if ( totalWeight < 1 ) {
+				totalWeight = 1;
 			}
 			// storing all updated transforms in a temporary dict
-			Dictionary< Transform, Quaternion > updatedRots = new Dictionary<Transform, Quaternion>();
+			Dictionary< Transform, Quaternion > updatedRots = new Dictionary< Transform, Quaternion >();
+			Dictionary< Transform, Vector3 > updatedPos = new Dictionary< Transform, Vector3 >();
 			foreach( B2Jplayhead ph in B2J_playheads ) {
 				if ( ph.Weight == 0 ) {
 					continue;
@@ -438,64 +441,32 @@ namespace B2J {
 				foreach ( KeyValuePair< int, Transform > pair in map.transformById ) {
 					int bid = pair.Key;
 					Transform t = pair.Value;
+					float ratio = ph.Weight / totalWeight;
 					if ( !updatedRots.ContainsKey( t ) ) {
 						updatedRots.Add( t, Quaternion.identity );
 					}
+					if ( !updatedPos.ContainsKey( t ) ) {
+						updatedPos.Add( t, Vector3.zero );
+					}
 					Quaternion newrot = ph.Rotations[ bid ];
-					updatedRots[ t ] = Quaternion.Slerp( updatedRots[ t ], newrot, ph.Weight );
+					updatedRots[ t ] = Quaternion.Slerp( updatedRots[ t ], newrot, ratio );
+					Vector3 newpos = ph.Positions[ bid ];
+					Vector3 currentp = updatedPos[ t ];
+					updatedPos[ t ] = new Vector3( 
+                      currentp.x + newpos.x * ratio * 0.01f,
+                      currentp.y + newpos.y * ratio * 0.01f,
+                      currentp.z + newpos.z * ratio * 0.01f );
 				}
 			}
 
 			// and applying on the model
 			foreach ( KeyValuePair< Transform, Quaternion > pair in updatedRots ) {
-
 				pair.Key.localRotation = localRotations[ pair.Key ] * pair.Value;
 //				pair.Key.localRotation = pair.Value;
-				
-//				Transform t = pair.Key;
-//				Quaternion test = Quaternion.identity;
-//				test = Quaternion.Slerp( test, pair.Value, 0.5f );
-//				Quaternion newq = localRotations[ t ] * pair.Value;
-//				t.rotation = newq;
-//				t.localRotation = pair.Value;
-//				t.localRotation = localRotations[ t ];
-
-//				Matrix4x4 restmat = new Matrix4x4();
-//				restmat.SetTRS( Vector3.zero, localRotations[ t ], Vector3.one );
-//				Matrix4x4 restmatI = restmat.inverse;
-//				Matrix4x4 newmat = new Matrix4x4();
-//				newmat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
-//				newmat = restmatI * newmat * restmat;
-//				t.localRotation = Quaternion.LookRotation( newmat.GetColumn(2), newmat.GetColumn(1) );
-
-				/*
-					// BVH SPACE
-					Quaternion q = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-					Matrix4x4 BVH2UNITY = Matrix4x4.identity;
-
-					BVH2UNITY.m00 = 1;
-					BVH2UNITY.m01 = 0;
-					BVH2UNITY.m02 = 0;
-
-					BVH2UNITY.m10 = 0;
-					BVH2UNITY.m11 = 1;
-					BVH2UNITY.m12 = 0;
-
-					BVH2UNITY.m20 = 0;
-					BVH2UNITY.m21 = 0;
-					BVH2UNITY.m22 = -1;
-
-					Matrix4x4 BVH2UNITYi = BVH2UNITY.inverse;
-					Matrix4x4 conv = new Matrix4x4();
-					conv.SetTRS( Vector3.zero, q, Vector3.one );
-					conv = BVH2UNITYi * conv * BVH2UNITY;
-					q = Quaternion.LookRotation( conv.GetColumn(2), conv.GetColumn(1) );
-
-					newkey.rotations[ qIds [i] ] = q;
-					*/
-
-
 			}
+//			foreach ( KeyValuePair< Transform, Vector3 > pair in updatedPos ) {
+//				pair.Key.localPosition = localTranslations[ pair.Key ] + pair.Value;
+//			}
 
 		}
 		
@@ -689,13 +660,6 @@ namespace B2J {
 						newkey.positions.Add( new Vector3( 0,0,0 ) );
 					else
 						newkey.positions.Add( new Vector3( previouskey.positions[ i ].x, previouskey.positions[ i ].y, previouskey.positions[ i ].z ) );
-					/*
-					if ( newkey.kID == 0 && bones[ i ].positions_enabled ) {
-						newkey.positions.Add( new Vector3( 0,0,0 ) );
-					} else {
-						newkey.positions.Add( null );
-					}
-					*/
 				}
 				List<int> pIds = convertListOfIndex ((IList)((IDictionary) keydata ["positions"]) ["bones"] );
 				List<float> pValues = convertListOfFloat ((IList)((IDictionary) keydata ["positions"]) ["values"] );
@@ -714,13 +678,6 @@ namespace B2J {
 						newkey.rotations.Add ( Quaternion.identity );
 					else
 						newkey.rotations.Add( previouskey.rotations[ i ] );
-					/*
-					if (newkey.kID == 0 && bones [i].rotations_enabled) {
-						newkey.rotations.Add ( new Quaternion () );
-					} else {
-						newkey.rotations.Add ( null );
-					}
-					*/
 				}
 
 				List<int> eulIds = convertListOfIndex ( (IList)( ( IDictionary)keydata ["eulers"] ) ["bones"] );
@@ -736,147 +693,8 @@ namespace B2J {
 					q.eulerAngles = eulers;
 					newkey.rotations[ eulIds[i] ] = q;
 
-//					newkey.rotations[ qIds [i] ] = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-//					Vector3 euls = newkey.rotations[ qIds [i] ].eulerAngles;
-//					Debug.Log ( qIds [i] + "eulers = " + euls.x +", " + euls.y +", " + euls.z );
-
-					// conversion form right 2 left handed
-//					Quaternion q = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-//					Matrix4x4 mat = new Matrix4x4();
-//					mat.SetTRS( Vector3.zero, q, Vector3.one );
-//
-//					Matrix4x4 matR2L = Matrix4x4.identity;
-//					matR2L.m11 = -1;
-//					matR2L.m22 = -1;
-//					Matrix4x4 matR2Li = matR2L.inverse;
-//
-//					mat = mat * matR2L;
-//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) );
-//
-//					// correction
-//					Matrix4x4 matR2L = Matrix4x4.identity;
-//					matR2L.m11 = -1;
-//					Matrix4x4 matR2Li = matR2L.inverse;
-//
-//					matR2L = matR2Li * mat * matR2L;
-//
-//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( matR2L.GetColumn(2), matR2L.GetColumn(1) );
-
-//					Matrix4x4 matR2L = Matrix4x4.identity;
-
-// ref: http://stackoverflow.com/questions/1263072/changing-a-matrix-from-right-handed-to-left-handed-coordinate-system/1264880#1264880
-/*
-
-{ m00, m01, m02, m03 }
-{ m10, m11, m12, m13 }
-{ m20, m21, m22, m23 }
-{ m30, m31, m32, m33 }
-
-{ rx, ry, rz, 0 }  
-{ ux, uy, uz, 0 }  
-{ lx, ly, lz, 0 }  
-{ px, py, pz, 1 }
-
-To change it from left to right or right to left, flip it like this:
-
-{ rx, rz, ry, 0 }  
-{ lx, lz, ly, 0 }  
-{ ux, uz, uy, 0 }  
-{ px, pz, py, 1 }
-
-*/
-//					matR2L.m00 = mat.m00;
-//					matR2L.m01 = mat.m02;
-//					matR2L.m02 = mat.m01;
-//					matR2L.m10 = mat.m20;
-//					matR2L.m11 = mat.m22;
-//					matR2L.m12 = mat.m21;
-//					matR2L.m20 = mat.m10;
-//					matR2L.m21 = mat.m12;
-//					matR2L.m22 = mat.m11;
-
-// ref: http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-//					float qx, qy, qz, qw;
-//
-//					float tr = matR2L.m00 + matR2L.m11 + matR2L.m22;
-//					if (tr > 0) { 
-//						float S = (float) Math.Sqrt( tr + 1.0 ) * 2; // S=4*qw 
-//						qw = 0.25f * S;
-//						qx = (matR2L.m21 - matR2L.m12) / S;
-//						qy = (matR2L.m02 - matR2L.m20) / S; 
-//						qz = (matR2L.m10 - matR2L.m01) / S; 
-//					} else if ((matR2L.m00 > matR2L.m11)&(matR2L.m00 > matR2L.m22)) { 
-//						float S = (float) Math.Sqrt( 1.0 + matR2L.m00 - matR2L.m11 - matR2L.m22 ) * 2; // S=4*qx 
-//						qw = (matR2L.m21 - matR2L.m12) / S;
-//						qx = 0.25f * S;
-//						qy = (matR2L.m01 + matR2L.m10) / S; 
-//						qz = (matR2L.m02 + matR2L.m20) / S; 
-//					} else if (matR2L.m11 > matR2L.m22) { 
-//						float S = (float) Math.Sqrt( 1.0 + matR2L.m11 - matR2L.m00 - matR2L.m22 ) * 2; // S=4*qy
-//						qw = (matR2L.m02 - matR2L.m20) / S;
-//						qx = (matR2L.m01 + matR2L.m10) / S; 
-//						qy = 0.25f * S;
-//						qz = (matR2L.m12 + matR2L.m21) / S; 
-//					} else { 
-//						float S = (float) Math.Sqrt( 1.0 + matR2L.m22 - matR2L.m00 - matR2L.m11 ) * 2; // S=4*qz
-//						qw = (matR2L.m10 - matR2L.m01) / S;
-//						qx = (matR2L.m02 + matR2L.m20) / S;
-//						qy = (matR2L.m12 + matR2L.m21) / S;
-//						qz = 0.25f * S;
-//					}
-//					newkey.rotations[ qIds [i] ] = new Quaternion( qx, qy, qz, qw );
-
-//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) );
-
-//					newkey.rotations[ qIds [i] ] = Quaternion.LookRotation( matR2L.GetColumn(2), matR2L.GetColumn(1) );
-
-					// RIGHT 2 LEFT HANDED
-//					Quaternion lq = new Quaternion ( (float) Math.Sqrt(2) * 0.5f, (float) Math.Sqrt(2) * 0.5f, 0, 0 );
-//					Quaternion rq = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-
-					// BVH SPACE
-//					Quaternion q = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-//					Matrix4x4 BVH2UNITY = Matrix4x4.identity;
-//
-//					BVH2UNITY.m00 = 1;
-//					BVH2UNITY.m01 = 0;
-//					BVH2UNITY.m02 = 0;
-//
-//					BVH2UNITY.m10 = 0;
-//					BVH2UNITY.m11 = 1;
-//					BVH2UNITY.m12 = 0;
-//
-//					BVH2UNITY.m20 = 0;
-//					BVH2UNITY.m21 = 0;
-//					BVH2UNITY.m22 = 1;
-//
-//					Matrix4x4 BVH2UNITYi = BVH2UNITY.inverse;
-//					Matrix4x4 conv = new Matrix4x4();
-//					conv.SetTRS( Vector3.zero, q, Vector3.one );
-//					conv = BVH2UNITYi * conv * BVH2UNITY;
-//					q = Quaternion.LookRotation( conv.GetColumn(2), conv.GetColumn(1) );
-
-//					newkey.rotations[ qIds [i] ] = q;
-
-//					newkey.rotations[ qIds [i] ] = rq * lq;
-
-//					Quaternion tmp = new Quaternion ( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-//					Vector3 eq = tmp.eulerAngles;
-//					eq.y = (float) Math.Atan2( Math.Cos( eq.y / 180.0 * Math.PI ), Math.Sin( eq.y / 180.0 * Math.PI ) );
-//					eq.y *= -1;
-//					Quaternion newq = new Quaternion();
-//					newq.eulerAngles = eq;
-//					newkey.rotations[ qIds [i] ] = newq;
-
-//					Quaternion tmp = new Quaternion( qValues [i * 4], qValues [i * 4 + 1], qValues [i * 4 + 2], qValues [i * 4 + 3] );
-//					Vector3 eq = tmp.eulerAngles;
-//					eq.y *= -1;
-//					eq.z *= -1;
-//					Quaternion newq = new Quaternion();
-//					newq.eulerAngles = eq;
-//					newkey.rotations[ qIds [i] ] = newq;
-
 				}
+
 			} else {
 				newkey.rotations = null;
 			}
@@ -889,13 +707,6 @@ To change it from left to right or right to left, flip it like this:
 						newkey.scales.Add ( new Vector3 (1, 1, 1) );
 					else
 						newkey.scales.Add( new Vector3( previouskey.scales[ i ].x, previouskey.scales[ i ].y, previouskey.scales[ i ].z ) );
-					/*
-					if (newkey.kID == 0 && bones [i].scales_enabled) {
-						newkey.scales.Add (new Vector3 (1, 1, 1));
-					} else {
-						newkey.scales.Add ( null );
-					}
-					*/
 				}
 				List<int> sIds = convertListOfIndex ((IList)((IDictionary)keydata ["scales"]) ["bones"]);
 				List<float> sValues = convertListOfFloat ((IList)((IDictionary)keydata ["scales"]) ["values"]);

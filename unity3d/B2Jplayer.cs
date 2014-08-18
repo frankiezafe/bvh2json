@@ -23,7 +23,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		mat.m03 = 0;
 		Debug.Log ( mat.ToString() );
 
-		interpolate = false;
+		interpolate = true;
 
 		init();
 
@@ -41,10 +41,10 @@ public class B2Jplayer : B2JgenericPlayer {
 	void Update() {
 
 		sync();
-//		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
-//		if ( ph != null ) {
-//			ph.Speed = 0.5f;
-//		}
+		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
+		if ( ph != null ) {
+			ph.Speed = 0.5f;
+		}
 		apply();
 
 	}
