@@ -354,6 +354,9 @@ namespace B2J {
 		protected Dictionary< Transform, Vector3 > localTranslations;
 		protected Dictionary< Transform, Vector3 > localScales;
 
+		protected Dictionary< Transform, Quaternion > updatedRots;
+		protected Dictionary< Transform, Vector3 > updatedPos;
+
 		protected bool interpolate;
 
 		public B2JgenericPlayer() {
@@ -366,6 +369,9 @@ namespace B2J {
 			localRotations = new Dictionary< Transform, Quaternion > ();
 			localTranslations = new Dictionary< Transform, Vector3 > ();
 			localScales = new Dictionary< Transform, Vector3 > ();
+
+			updatedRots = new Dictionary< Transform, Quaternion >();
+			updatedPos = new Dictionary< Transform, Vector3 >();
 
 			interpolate = true;
 
@@ -413,7 +419,7 @@ namespace B2J {
 			}
 		}
 
-		protected void apply() {
+		protected void render() {
 
 			float totalWeight = 0;
 			foreach( B2Jplayhead ph in B2J_playheads ) {
@@ -425,8 +431,8 @@ namespace B2J {
 				totalWeight = 1;
 			}
 			// storing all updated transforms in a temporary dict
-			Dictionary< Transform, Quaternion > updatedRots = new Dictionary< Transform, Quaternion >();
-			Dictionary< Transform, Vector3 > updatedPos = new Dictionary< Transform, Vector3 >();
+			updatedRots.Clear();
+			updatedPos.Clear();
 			foreach( B2Jplayhead ph in B2J_playheads ) {
 				if ( ph.Weight == 0 ) {
 					continue;
@@ -459,16 +465,52 @@ namespace B2J {
 				}
 			}
 
-			// and applying on the model
-			foreach ( KeyValuePair< Transform, Quaternion > pair in updatedRots ) {
-				pair.Key.localRotation = localRotations[ pair.Key ] * pair.Value;
-//				pair.Key.localRotation = pair.Value;
-			}
-//			foreach ( KeyValuePair< Transform, Vector3 > pair in updatedPos ) {
-//				pair.Key.localPosition = localTranslations[ pair.Key ] + pair.Value;
-//			}
-
 		}
+
+//		protected void drawMocapModel( Transform t = null ) {
+//
+//			foreach( B2Jplayhead ph in B2J_playheads ) {
+//
+//				B2Jrecord rec = ph.Record;
+//				GL.Color( Color.red );
+//				foreach( B2Jbone b in rec.bones ) {
+//					if ( b.parent == null )
+//						drawMocapBone( b, t );
+//				}
+//
+//			}
+//			
+//		}
+//
+//		protected Vector3 recursivePos( B2Jbone b ) {
+//			if ( b.parent == null )
+//				return new Vector3( 0,0,0 );
+//			Vector3 outp = new Vector3( 0,0,0 );
+//			outp += b.parent.rest;
+//			outp += recursivePos( b.parent );
+//			return outp;
+//		}
+//
+//		protected void drawMocapBone( B2Jbone b, Transform t = null ) {
+//
+//			Vector3 start = recursivePos (b);
+//			Vector3 end = start + b.rest;
+//
+//			if (t != null) {
+//				start += t.position;
+//				end += t.position;
+//			}
+//
+//			GL.Begin( GL.LINES );
+//			GL.Vertex3( start.x * 0.01f, start.y * 0.01f, start.z * 0.01f );
+//			GL.Vertex3( end.x * 0.01f, end.y * 0.01f, end.z * 0.01f );
+//			GL.End();
+//
+//			foreach (B2Jbone child in b.children) {
+//				drawMocapBone( child );
+//			}
+//
+//		}
 		
 	}
 
@@ -687,10 +729,19 @@ namespace B2J {
 
 					Quaternion q = Quaternion.identity;
 					Vector3 eulers = new Vector3( eulValues [i * 3], eulValues [i * 3 + 1], eulValues [i * 3 + 2] );
-					eulers.z *= -1;
-//					string roto = summary_rotation_order[ eulIds[i] ];
+//					eulers.x *= -1;
+//					eulers.y = eulers.y * -1 + 180;
+					//eulers.z *= -1;
+					string roto = summary_rotation_order[ eulIds[i] ];
 //					Debug.Log( eulIds[i] +" rot order: " + roto );
-					q.eulerAngles = eulers;
+					Quaternion qx = Quaternion.AngleAxis( eulers.x, Vector3.right );
+					Quaternion qy = Quaternion.AngleAxis( eulers.y, Vector3.up );
+					Quaternion qz = Quaternion.AngleAxis( eulers.z, Vector3.forward );
+					if ( roto == "ZXY" )
+						q = qz * qx * qy;
+					else
+						q = qx * qy * qz;
+//					q.eulerAngles = eulers;
 					newkey.rotations[ eulIds[i] ] = q;
 
 				}
