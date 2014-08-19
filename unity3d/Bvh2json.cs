@@ -466,51 +466,6 @@ namespace B2J {
 			}
 
 		}
-
-//		protected void drawMocapModel( Transform t = null ) {
-//
-//			foreach( B2Jplayhead ph in B2J_playheads ) {
-//
-//				B2Jrecord rec = ph.Record;
-//				GL.Color( Color.red );
-//				foreach( B2Jbone b in rec.bones ) {
-//					if ( b.parent == null )
-//						drawMocapBone( b, t );
-//				}
-//
-//			}
-//			
-//		}
-//
-//		protected Vector3 recursivePos( B2Jbone b ) {
-//			if ( b.parent == null )
-//				return new Vector3( 0,0,0 );
-//			Vector3 outp = new Vector3( 0,0,0 );
-//			outp += b.parent.rest;
-//			outp += recursivePos( b.parent );
-//			return outp;
-//		}
-//
-//		protected void drawMocapBone( B2Jbone b, Transform t = null ) {
-//
-//			Vector3 start = recursivePos (b);
-//			Vector3 end = start + b.rest;
-//
-//			if (t != null) {
-//				start += t.position;
-//				end += t.position;
-//			}
-//
-//			GL.Begin( GL.LINES );
-//			GL.Vertex3( start.x * 0.01f, start.y * 0.01f, start.z * 0.01f );
-//			GL.Vertex3( end.x * 0.01f, end.y * 0.01f, end.z * 0.01f );
-//			GL.End();
-//
-//			foreach (B2Jbone child in b.children) {
-//				drawMocapBone( child );
-//			}
-//
-//		}
 		
 	}
 
@@ -706,7 +661,7 @@ namespace B2J {
 				List<int> pIds = convertListOfIndex ((IList)((IDictionary) keydata ["positions"]) ["bones"] );
 				List<float> pValues = convertListOfFloat ((IList)((IDictionary) keydata ["positions"]) ["values"] );
 				for (int i = 0; i < pIds.Count; i++) {
-					newkey.positions[ pIds[ i ] ] = new Vector3( pValues[ i * 3 ], pValues[ i * 3 + 1 ], pValues[ i * 3 + 2 ] );
+					newkey.positions[ pIds[ i ] ] = new Vector3( -pValues[ i * 3 ], pValues[ i * 3 + 1 ], pValues[ i * 3 + 2 ] );
 				}
 			} else {
 				newkey.positions = null;
@@ -728,7 +683,7 @@ namespace B2J {
 				for (int i = 0; i < eulIds.Count; i++ ) {
 
 					Quaternion q = Quaternion.identity;
-					Vector3 eulers = new Vector3( eulValues [i * 3], eulValues [i * 3 + 1], eulValues [i * 3 + 2] );
+					Vector3 eulers = new Vector3( eulValues [i * 3], -eulValues [i * 3 + 1], -eulValues [i * 3 + 2] );
 //					eulers.x *= -1;
 //					eulers.y = eulers.y * -1 + 180;
 					//eulers.z *= -1;
@@ -739,6 +694,14 @@ namespace B2J {
 					Quaternion qz = Quaternion.AngleAxis( eulers.z, Vector3.forward );
 					if ( roto == "ZXY" )
 						q = qz * qx * qy;
+					else if ( roto == "ZYX" )
+						q = qz * qy * qx;
+					else if ( roto == "YZX" )
+						q = qy * qz * qx;
+					else if ( roto == "YXZ" )
+						q = qy * qx * qz;
+					else if ( roto == "XZY" )
+						q = qy * qz * qx;
 					else
 						q = qx * qy * qz;
 //					q.eulerAngles = eulers;
@@ -842,6 +805,7 @@ namespace B2J {
 				newb.children = new List<B2Jbone>();
 				newb.parent = null;
 				newb.rest = new Vector3( float.Parse( "" + rests[ ( i * 3 ) ] ), float.Parse( "" + rests[ ( i * 3 ) + 1 ] ), float.Parse( "" + rests[ ( i * 3 ) + 2 ] ) );
+				newb.rest.x *= -1;
 				newb.positions_enabled = false;
 				newb.rotations_enabled = false;
 				newb.scales_enabled = false;

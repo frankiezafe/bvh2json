@@ -47,7 +47,6 @@ public class B2Jplayer : B2JgenericPlayer {
 		}
 		render();
 
-		
 		// and applying on the model
 		foreach ( KeyValuePair< Transform, Quaternion > pair in updatedRots ) {
 
