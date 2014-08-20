@@ -2,7 +2,7 @@
 	
 	// this file does not store scales
 	"type": "data",
-	"version": 0.0,
+	"version": 0.1,
 	"desc": "template of mocap file in json, july 2014",
 	"name": "template", // free text
 	"model": "bvh_numediart", // ULTRA important for mapping!!! each file with same model will have the same bones names & hierarchy
@@ -15,19 +15,34 @@
 		{ "name": "run", "in": -1, "out": -1, "kin": 50, "kout": 96 },
 	]
 	"list": [ "hips", "spine", "chest", "neck", "shoulderL" ], // index of quaternions in "data[n].quaternions"
-	"rest": [ 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0 ],
+	"rotation_order": [ 'XYZ', 'XYZ', 'XYZ', 'XYZ', 'XYZ' ],
 	"hierarchy": [
 		{ // hierarchy of bones of the list above. all bones must be listed
-		"bone":  "hips", "children": [
+		"bone":  "hips",
+		"head": [ 0,0,0 ], // local head
+		"tail": [ 0,0,0 ], // local tail 
+		"children": [
 			{ 
-			"bone": "spine", "children": [
+			"bone": "spine",
+			"head": [ 0,0,0 ], // local head
+			"tail": [ 0,0,0 ], // local tail
+			"children": [
 				{ 
-				"bone": "chest", "children": [
+				"bone": "chest", 
+				"head": [ 0,0,0 ], // local head
+				"tail": [ 0,0,0 ], // local tail
+				"children": [
 					{ 
-					"bone": "neck", "children": [ ]
+					"bone": "neck", 
+					"head": [ 0,0,0 ], // local head
+					"tail": [ 0,0,0 ], // local tail
+					"children": [ ]
 					},
 					{ 
-					"bone": "shoulderL", "children": [ ]
+					"bone": "shoulderL", 
+					"head": [ 0,0,0 ], // local head
+					"tail": [ 0,0,0 ], // local tail
+					"children": [ ]
 					},
 				]
 				},
@@ -39,7 +54,7 @@
 	
 	"summary": {
 		"positions": [], // index of modified bones
-		"quaternions": [], // index of modified bones
+		"eulers": [], // index of modified bones
 		"scales": [], // index of modified bones
 	},
 	
@@ -55,9 +70,9 @@
 				"bones": [ "all" ], // key contains all scale values
 				"values": [ 1,1,1, 1,1,1, 1,1,1, 1,1,1, 1,1,1, ]
 			}, // X Y Z order
-			"quaternions": {
+			"eulers": {
 				"bones": [ "all" ], // key contains all quaternions values
-				"values" : [ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, ], // W X Y Z order!
+				"values" : [ 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0 ], // X Y Z order!
 			}
 		},
 		{
@@ -71,9 +86,9 @@
 				"bones": [],
 				"values": []
 			}, // X Y Z order
-			"quaternions": {
+			"eulers": {
 				"bones": [ 0, 1 ], // key contains quaternions for bones 0 & 1 -> "hips" & "spine"
-				"values" : [ 0,0,0,0, 0,0,0,0, ], // W X Y Z order!
+				"values" : [ 0,0,0, 0,0,0 ], // X Y Z order!
 			}
 		},
 	],

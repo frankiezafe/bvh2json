@@ -317,11 +317,13 @@ class BvhConverter():
 		jsonData[ "list" ] = []
 		for i in data.nodes:
 			jsonData[ "list" ].append( data.nodes[ i ].name )
+		'''		
 		jsonData[ "rest" ] = []
 		for i in data.nodes:
 			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.x )
 			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.y )
 			jsonData[ "rest" ].append( data.nodes[ i ].rest_head_local.z )
+		'''
 		jsonData[ "rotation_order" ] = []
 		for i in data.nodes:
 			jsonData[ "rotation_order" ].append( data.nodes[ i ].rot_order_str )
@@ -567,6 +569,8 @@ class BvhConverter():
 			return
 		d = {}
 		d["bone"] = node.name
+		d["head"] = [ node.rest_head_local.x, node.rest_head_local.y, node.rest_head_local.z ]
+		d["tail"] = [ node.rest_tail_local.x, node.rest_tail_local.y, node.rest_tail_local.z ]
 		d["children"] = []
 		for child in node.children:
 			d["children"].append( self.hierarchyData( child ) )
