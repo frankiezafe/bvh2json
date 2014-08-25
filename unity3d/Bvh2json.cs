@@ -26,6 +26,8 @@ namespace B2J {
 		public string rotation_order;
 		public B2Jbone parent;
 		public List<B2Jbone> children;
+		public Vector3 head;
+		public Vector3 tail;
 		public Vector3 rest;
 		public bool positions_enabled;
 		public bool rotations_enabled;
@@ -64,6 +66,8 @@ namespace B2J {
 
 	public class B2Jhierarchy {
 		public string name;
+		public Vector3 head;
+		public Vector3 tail;
 		public List< B2Jhierarchy > children;
 	}
 
@@ -81,6 +85,7 @@ namespace B2J {
 		private float _speed; // multiplier of time in millis
 		private B2Jrecord _record;
 		private float _weight;
+		private float _mult;
 		private List< Vector3 > _positions; // same length as record.bones
 		private List< Quaternion > _rotations; // same length as record.bones
 		private List< Vector3 > _scales; // same length as record.bones
@@ -116,7 +121,17 @@ namespace B2J {
 			_time = _cueIn;
 			_speed = 1;
 			_weight = 1;
+			_mult = 1;
 
+		}
+
+		public B2Jloop Loop {
+			get {
+				return _loop;
+			}
+			set {
+				_loop = value;
+			}
 		}
 
 		public string Name {
@@ -124,8 +139,7 @@ namespace B2J {
 				return _record.name;
 			}
 		}
-		
-		
+
 		public string Model {
 			get {
 				return _record.model;
@@ -171,6 +185,15 @@ namespace B2J {
 			}
 			get {
 				return _weight;
+			}
+		}
+
+		public float Multiplier {
+			get {
+				return _mult;
+			}
+			set {
+				_mult = value;
 			}
 		}
 
@@ -243,7 +266,7 @@ namespace B2J {
 				
 			} else if ( _time < _cueIn ) {
 				_time = _cueIn;
-				if ( _loop == B2Jloop.B2JLOOPNORMAL ) {
+				if ( _loop == B2Jloop.B2JLOOPPALINDROME ) {
 					_speed *= -1;
 				}
 			}
@@ -274,6 +297,8 @@ namespace B2J {
 			} else {
 				foreach( B2Jkey k in _record.keys ) {
 					above = below;
+					if ( above == null )
+						above = k;
 					below = k;
 					if ( below.timestamp >= _time )
 						break;
@@ -444,29 +469,43 @@ namespace B2J {
 					continue;
 				}
 				// no need to go over all bones, just the ones of the mapping
-				foreach ( KeyValuePair< int, Transform > pair in map.transformById ) {
+				foreach ( KeyValuePair< int, B2JmapList > pair in map.transformListById ) {
 					int bid = pair.Key;
-					Transform t = pair.Value;
-					float ratio = ph.Weight / totalWeight;
-					if ( !updatedRots.ContainsKey( t ) ) {
-						updatedRots.Add( t, Quaternion.identity );
+					B2JmapList tlist = pair.Value;
+					for ( int i = 0; i < tlist.transforms.Count; i++ ) {
+						Transform t = tlist.transforms[ i ];
+						float locw = tlist.weights[ i ];
+						float ratio = locw * ph.Weight / totalWeight; // calcul du weight absolu
+						ratio *= ph.Multiplier; // application du multiplier
+						if ( !updatedRots.ContainsKey( t ) ) {
+							updatedRots.Add( t, Quaternion.identity );
+						}
+						if ( !updatedPos.ContainsKey( t ) ) {
+							updatedPos.Add( t, Vector3.zero );
+						}
+						Quaternion newrot = ph.Rotations[ bid ];
+						updatedRots[ t ] = Quaternion.Slerp( updatedRots[ t ], newrot, ratio );
+						Vector3 newpos = ph.Positions[ bid ];
+						Vector3 currentp = updatedPos[ t ];
+						updatedPos[ t ] = new Vector3( 
+	                      currentp.x + newpos.x * ratio * 0.01f,
+	                      currentp.y + newpos.y * ratio * 0.01f,
+	                      currentp.z + newpos.z * ratio * 0.01f );
 					}
-					if ( !updatedPos.ContainsKey( t ) ) {
-						updatedPos.Add( t, Vector3.zero );
-					}
-					Quaternion newrot = ph.Rotations[ bid ];
-					updatedRots[ t ] = Quaternion.Slerp( updatedRots[ t ], newrot, ratio );
-					Vector3 newpos = ph.Positions[ bid ];
-					Vector3 currentp = updatedPos[ t ];
-					updatedPos[ t ] = new Vector3( 
-                      currentp.x + newpos.x * ratio * 0.01f,
-                      currentp.y + newpos.y * ratio * 0.01f,
-                      currentp.z + newpos.z * ratio * 0.01f );
 				}
 			}
-
 		}
-		
+	}
+
+	public class B2JmapList {
+
+		public List< Transform > transforms;
+		public List< float > weights;
+		public B2JmapList() {
+			transforms = new List < Transform > ();
+			weights = new List < float > ();
+		}
+
 	}
 
 	public class B2Jmap {
@@ -475,14 +514,16 @@ namespace B2J {
 		public string name;
 		public string description;
 		public float version;
-		public Dictionary< string, Transform > transformByName;
-		public Dictionary< int, Transform > transformById;
-		
+//		public Dictionary< string, Transform > transformByName;
+//		public Dictionary< int, Transform > transformById;
+		public Dictionary< string, B2JmapList > transformListByName;
+		public Dictionary< int, B2JmapList > transformListById;
+
 		public B2Jmap() {
-			
-			transformByName = new Dictionary< string, Transform >();
-			transformById = new Dictionary< int, Transform >();
-			
+//			transformByName = new Dictionary< string, Transform >();
+//			transformById = new Dictionary< int, Transform >();
+			transformListByName = new Dictionary< string, B2JmapList > ();
+			transformListById = new Dictionary< int, B2JmapList > ();
 		}
 		
 		// pass the text assets containung the mapping and the game object (an avatar...) where the bones are
@@ -494,60 +535,96 @@ namespace B2J {
 			} else {
 				Debug.Log ( "B2Jmap:: '" + bvhj.name + "' successfully loaded" );
 			}
-			
 			IDictionary data = ( IDictionary ) Json.Deserialize ( bvhj.ToString() );
 			if ( data == null) {
 				Debug.Log ( "Failed to parse " + bvhj.name );
 				return false;
 			}
-			
-			if (System.String.Compare ( (string) data ["type"], "mapping") != 0) {
+			if ( System.String.Compare ( (string) data ["type"], "mapping") != 0) {
 				Debug.Log ( "B2J maps must have a type 'maaping'" );
 				return false;
 			}
-			
 			model = (string) data[ "model" ];
 			name = (string) data[ "name" ];
 			description = (string) data[ "desc" ];
 			version = float.Parse( "" + data[ "version" ] );
-			
-			IList bvh_bones = ( IList ) data[ "local" ];
-			IList transform_names = ( IList ) data[ "foreign" ];
-			if ( bvh_bones.Count != transform_names.Count ) {
-				Debug.Log ( "local count and foreign doesn't match! local: " + bvh_bones.Count +", foreign: "+ transform_names.Count );
-				return false;
-			}
-			
-			// validation of foreigns
-			Transform[] all_transforms = obj.GetComponentsInChildren<Transform>();
-			for ( int i = 0; i < transform_names.Count; i++ ) {
-				foreach( Transform transform in all_transforms ) {
-					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
-						transformByName.Add( (string) bvh_bones[ i ], transform );
-						transformById.Add( i, transform );
-						break;
+			IList bvh_bones = ( IList ) data[ "list" ];
+			Transform[] all_transforms = obj.GetComponentsInChildren < Transform > ();
+			if ( data.Contains( "relations" ) ) {
+				IList relations = ( IList ) data[ "relations" ];
+				for( int i = 0; i < relations.Count; i++ ) {
+					IDictionary< string, object > relation = ( Dictionary< string, object > ) relations[ i ];
+					foreach( KeyValuePair< string, object > rel in relation ) {
+						string b2jname = rel.Key;
+						int b2jid = -1;
+						for ( int j = 0; j < bvh_bones.Count; j++ ) {
+							if ( System.String.Compare( b2jname, bvh_bones[ j ].ToString() ) == 0 ) {
+								b2jid = j;
+								break;
+							}
+						}
+						if ( b2jid == -1 ) {
+							Debug.LogError ( "Unknown relation key: " + b2jname + ", verify 'local' list." );
+						}
+						if ( rel.Value == null ) {
+							Debug.LogError ( "NULL value for key: " + b2jname );
+							continue;
+						}
+						IList relmaps = ( IList ) rel.Value;
+						B2JmapList ml = new B2JmapList();
+						bool store = false;
+						for ( int j = 0; j < relmaps.Count; j++ ) {
+							IDictionary rmap = ( IDictionary ) relmaps[ j ];
+							foreach( Transform transform in all_transforms ) {
+								if ( System.String.Compare( transform.name, rmap["bone"].ToString() ) == 0 ) {
+									ml.transforms.Add( transform );
+									ml.weights.Add( float.Parse( rmap["weight"].ToString() ) );
+									store = true;
+									break;
+								}
+							}
+						}
+						if ( store ) {
+							transformListByName.Add( b2jname, ml );
+							transformListById.Add( b2jid, ml );
+						} else {
+							Debug.LogError ( "No relations for key: " + b2jname );
+							continue;
+						}
 					}
 				}
+			} else {
+				return false;
 			}
+
+//			foreach( KeyValuePair< int, B2JmapList > mapl in transformListById ) {
+//				B2JmapList ml = mapl.Value;
+//				Debug.Log( "map: " + bvh_bones[ mapl.Key ] );
+//				for( int i = 0; i < ml.transforms.Count; i++ ) {
+//					Debug.Log( ">> " + ml.transforms[ i ].name + " = " + ml.weights[ i ] );
+//				}
+//			}
+
+//			if ( bvh_bones.Count != transform_names.Count ) {
+//				Debug.Log ( "local count and foreign doesn't match! local: " + bvh_bones.Count +", foreign: "+ transform_names.Count );
+//				return false;
+//			}
+
+			// validation of foreigns
+//			for ( int i = 0; i < transform_names.Count; i++ ) {
+//				foreach( Transform transform in all_transforms ) {
+//					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
+//						transformByName.Add( (string) bvh_bones[ i ], transform );
+//						transformById.Add( i, transform );
+//						break;
+//					}
+//				}
+//			}
+
 			return true;
 			
 		}
-		
-		public Transform getTransformByName( string bvh_bone_name ) {
-			if ( !transformByName.ContainsKey( bvh_bone_name ) ) {
-				return null;
-			}
-			return transformByName[ bvh_bone_name ];
-		}
-		
-		public Transform getTransformById( int bvh_bone_id ) {
-			if ( !transformById.ContainsKey( bvh_bone_id ) ) {
-				return null;
-			}
-			return transformById[ bvh_bone_id ];
-		}
-		
-		
+
 	}
 
 	#endregion
@@ -743,6 +820,11 @@ namespace B2J {
 				IDictionary tmph = ( IDictionary ) hierarchy[ i ];
 				B2Jhierarchy newh = new B2Jhierarchy();
 				newh.name = "" + tmph[ "bone" ];
+				List<float> vs;
+				vs = convertListOfFloat( (IList) tmph[ "head" ] );
+				newh.head = new Vector3( -vs[ 0 ], vs[ 1 ], vs[ 2 ] );
+				vs = convertListOfFloat( (IList) tmph[ "tail" ] );
+				newh.tail = new Vector3( -vs[ 0 ], vs[ 1 ], vs[ 2 ] );
 				newh.children = new List<B2Jhierarchy>();
 				parseHierarchy( ( IList ) tmph[ "children" ], newh.children );
 				holder.Add( newh );
@@ -796,7 +878,7 @@ namespace B2J {
 			// basic list of bones
 			List<B2Jbone> output = new List<B2Jbone> ();
 			IList dbs = ( IList ) data[ "list" ];
-			IList rests = ( IList ) data[ "rest" ];
+//			IList rests = ( IList ) data[ "rest" ];
 			for ( int i = 0; i < dbs.Count; i++ ) {
 				string bname = "" + dbs[ i ];
 				B2Jbone newb = new B2Jbone();
@@ -804,8 +886,8 @@ namespace B2J {
 				newb.rotation_order = summary_rotation_order[ i ];
 				newb.children = new List<B2Jbone>();
 				newb.parent = null;
-				newb.rest = new Vector3( float.Parse( "" + rests[ ( i * 3 ) ] ), float.Parse( "" + rests[ ( i * 3 ) + 1 ] ), float.Parse( "" + rests[ ( i * 3 ) + 2 ] ) );
-				newb.rest.x *= -1;
+//				newb.rest = new Vector3( float.Parse( "" + rests[ ( i * 3 ) ] ), float.Parse( "" + rests[ ( i * 3 ) + 1 ] ), float.Parse( "" + rests[ ( i * 3 ) + 2 ] ) );
+//				newb.rest.x *= -1;
 				newb.positions_enabled = false;
 				newb.rotations_enabled = false;
 				newb.scales_enabled = false;
@@ -829,6 +911,9 @@ namespace B2J {
 			foreach ( B2Jbone bone in output ) {
 				h = findInHierarchy( tmphierarchies, bone.name );
 				if ( h != null ) {
+					bone.head = h.head;
+					bone.tail = h.tail;
+					bone.rest = bone.tail - bone.head;
 					foreach( B2Jhierarchy hc in h.children ) {
 						tmpb = getBoneByName( output, hc.name );
 						if ( tmpb != null ) {
