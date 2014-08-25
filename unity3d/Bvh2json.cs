@@ -44,7 +44,14 @@ namespace B2J {
 		// this implies also that rotations.Count == B2Jrecord.bones.Count
 		public List<Vector3> positions;
 		public List<Quaternion> rotations;
+		public List<Vector3> eulers;
 		public List<Vector3> scales;
+		public B2Jkey() {
+			positions = new List<Vector3> ();
+			rotations = new List<Quaternion> ();
+			eulers = new List<Vector3> ();
+			scales = new List<Vector3> ();
+		}
 	}
 
 	public class B2Jrecord {
@@ -88,6 +95,7 @@ namespace B2J {
 		private float _mult;
 		private List< Vector3 > _positions; // same length as record.bones
 		private List< Quaternion > _rotations; // same length as record.bones
+		private List< Vector3 > _eulers; // same length as record.bones
 		private List< Vector3 > _scales; // same length as record.bones
 
 		private float _cueIn;
@@ -103,6 +111,8 @@ namespace B2J {
 		Vector3 Rp;
 		Quaternion Rq;
 		Vector3 Rs;
+		Vector3 e1;
+		Vector3 e2;
 
 		public B2Jplayhead( B2Jrecord rec, B2Jloop loop ) {
 
@@ -110,11 +120,13 @@ namespace B2J {
 			_record = rec;
 			_positions = new List<Vector3> ();
 			_rotations = new List<Quaternion> ();
+			_eulers = new List<Vector3> ();
 			_scales = new List<Vector3> ();
 			foreach (B2Jbone b in rec.bones) {
-				_positions.Add( new Vector3() );
+				_positions.Add( Vector3.zero );
 				_rotations.Add(  Quaternion.identity );
-				_scales.Add( new Vector3() );
+				_eulers.Add( Vector3.zero );
+				_scales.Add( Vector3.one );
 			}
 			_cueIn = _record.keys[ 0 ].timestamp;
 			_cueOut = _record.keys[ _record.keys.Count - 1 ].timestamp;
@@ -241,6 +253,16 @@ namespace B2J {
 				return _scales;
 			}
 		}
+		
+		public List< Vector3 > Eulers {
+			get {
+				return _eulers;
+			}
+		}
+
+		public string getRotationOrder( int bID ) {
+			return _record.bones [bID].rotation_order;
+		}
 
 		public void update( bool interpolation ) {
 
@@ -319,6 +341,8 @@ namespace B2J {
 					if ( _record.bones[ i ].rotations_enabled ) {
 						q1 = above.rotations[ i ];
 						_rotations[ i ] = new Quaternion( q1.x, q1.y, q1.z, q1.w );
+						e1 = above.eulers[ i ];
+						_eulers[ i ] = new Vector3( e1.x, e1.y, e1.z );
 					}
 					if ( _record.bones[ i ].scales_enabled ) {
 						s1 = above.scales[ i ];
@@ -342,13 +366,20 @@ namespace B2J {
 						       p1.x * belowpc + p2.x * abovepc,
 						       p1.y * belowpc + p2.y * abovepc,
 						       p1.z * belowpc + p2.z * abovepc
-						       );
+						);
 					}
 
 					if ( _record.bones[ i ].rotations_enabled ) {
 						q1 = below.rotations[ i ];
 						q2 = above.rotations[ i ];
 						_rotations[ i ] = Quaternion.Slerp( q1, q2, abovepc );
+						e1 = below.eulers[ i ];
+						e2 = above.eulers[ i ];
+						_eulers[ i ] = new Vector3( 
+	                           e1.x * belowpc + e2.x * abovepc,
+	                           e1.y * belowpc + e2.y * abovepc,
+	                           e1.z * belowpc + e2.z * abovepc
+	                    );
 					}
 
 					if ( _record.bones[ i ].scales_enabled ) {
@@ -358,7 +389,7 @@ namespace B2J {
 						       s1.x * belowpc + s2.x * abovepc,
 						       s1.y * belowpc + s2.y * abovepc,
 						       s1.z * belowpc + s2.z * abovepc
-						       );
+						);
 					}
 
 				}
@@ -476,7 +507,6 @@ namespace B2J {
 						Transform t = tlist.transforms[ i ];
 						float locw = tlist.weights[ i ];
 						float ratio = locw * ph.Weight / totalWeight; // calcul du weight absolu
-						ratio *= ph.Multiplier; // application du multiplier
 						if ( !updatedRots.ContainsKey( t ) ) {
 							updatedRots.Add( t, Quaternion.identity );
 						}
@@ -491,6 +521,7 @@ namespace B2J {
 	                      currentp.x + newpos.x * ratio * 0.01f,
 	                      currentp.y + newpos.y * ratio * 0.01f,
 	                      currentp.z + newpos.z * ratio * 0.01f );
+
 					}
 				}
 			}
@@ -649,7 +680,31 @@ namespace B2J {
 		private List<int> summary_s;
 		private List<int> idsFullList;
 		private List<string> summary_rotation_order;
-		
+
+		public static Quaternion renderQuaternion( Vector3 eulers, string roto ) {
+			
+			Quaternion q = Quaternion.identity;
+			Quaternion qx = Quaternion.AngleAxis( eulers.x, Vector3.right );
+			Quaternion qy = Quaternion.AngleAxis( eulers.y, Vector3.up );
+			Quaternion qz = Quaternion.AngleAxis( eulers.z, Vector3.forward );
+			
+			if ( roto == "ZXY" )
+				q = qz * qx * qy;
+			else if ( roto == "ZYX" )
+				q = qz * qy * qx;
+			else if ( roto == "YZX" )
+				q = qy * qz * qx;
+			else if ( roto == "YXZ" )
+				q = qy * qx * qz;
+			else if ( roto == "XZY" )
+				q = qy * qz * qx;
+			else
+				q = qx * qy * qz;
+			
+			return q;
+			
+		}
+
 		private B2Jparser() {}
 
 		public B2Jrecord load( string path ) {
@@ -728,7 +783,6 @@ namespace B2J {
 
 			// positions list
 			if (summary_p.Count > 0) {
-				newkey.positions = new List<Vector3> ();
 				for (int i = 0; i < bones.Count; i++) {
 					if ( previouskey == null )
 						newkey.positions.Add( new Vector3( 0,0,0 ) );
@@ -746,12 +800,14 @@ namespace B2J {
 
 			// rotations list
 			if (summary_euler.Count > 0) {
-				newkey.rotations = new List<Quaternion> ();
 				for (int i = 0; i < bones.Count; i++) {
-					if ( previouskey == null )
+					if ( previouskey == null ) {
 						newkey.rotations.Add ( Quaternion.identity );
-					else
+						newkey.eulers.Add( Vector3.zero );
+					} else {
 						newkey.rotations.Add( previouskey.rotations[ i ] );
+						newkey.eulers.Add( previouskey.eulers[ i ] );
+					}
 				}
 
 				List<int> eulIds = convertListOfIndex ( (IList)( ( IDictionary)keydata ["eulers"] ) ["bones"] );
@@ -759,35 +815,40 @@ namespace B2J {
 
 				for (int i = 0; i < eulIds.Count; i++ ) {
 
-					Quaternion q = Quaternion.identity;
-					Vector3 eulers = new Vector3( eulValues [i * 3], -eulValues [i * 3 + 1], -eulValues [i * 3 + 2] );
-//					eulers.x *= -1;
-//					eulers.y = eulers.y * -1 + 180;
-					//eulers.z *= -1;
-					string roto = summary_rotation_order[ eulIds[i] ];
-//					Debug.Log( eulIds[i] +" rot order: " + roto );
-					Quaternion qx = Quaternion.AngleAxis( eulers.x, Vector3.right );
-					Quaternion qy = Quaternion.AngleAxis( eulers.y, Vector3.up );
-					Quaternion qz = Quaternion.AngleAxis( eulers.z, Vector3.forward );
-					if ( roto == "ZXY" )
-						q = qz * qx * qy;
-					else if ( roto == "ZYX" )
-						q = qz * qy * qx;
-					else if ( roto == "YZX" )
-						q = qy * qz * qx;
-					else if ( roto == "YXZ" )
-						q = qy * qx * qz;
-					else if ( roto == "XZY" )
-						q = qy * qz * qx;
-					else
-						q = qx * qy * qz;
-//					q.eulerAngles = eulers;
+//					Quaternion q = Quaternion.identity;
+//					Vector3 eulers = new Vector3( eulValues [i * 3], -eulValues [i * 3 + 1], -eulValues [i * 3 + 2] );
+////					eulers.x *= -1;
+////					eulers.y = eulers.y * -1 + 180;
+//					//eulers.z *= -1;
+//					string roto = summary_rotation_order[ eulIds[i] ];
+////					Debug.Log( eulIds[i] +" rot order: " + roto );
+//					Quaternion qx = Quaternion.AngleAxis( eulers.x, Vector3.right );
+//					Quaternion qy = Quaternion.AngleAxis( eulers.y, Vector3.up );
+//					Quaternion qz = Quaternion.AngleAxis( eulers.z, Vector3.forward );
+//					if ( roto == "ZXY" )
+//						q = qz * qx * qy;
+//					else if ( roto == "ZYX" )
+//						q = qz * qy * qx;
+//					else if ( roto == "YZX" )
+//						q = qy * qz * qx;
+//					else if ( roto == "YXZ" )
+//						q = qy * qx * qz;
+//					else if ( roto == "XZY" )
+//						q = qy * qz * qx;
+//					else
+//						q = qx * qy * qz;
+////					q.eulerAngles = eulers;
+//					newkey.rotations[ eulIds[i] ] = q;
+
+					newkey.eulers[ eulIds[i] ] = new Vector3( eulValues [i * 3], -eulValues [i * 3 + 1], -eulValues [i * 3 + 2] );
+					Quaternion q = B2Jparser.renderQuaternion( newkey.eulers[ eulIds[i] ], summary_rotation_order[ eulIds[i] ] );
 					newkey.rotations[ eulIds[i] ] = q;
 
 				}
 
 			} else {
 				newkey.rotations = null;
+				newkey.eulers = null;
 			}
 			
 			// scales list
