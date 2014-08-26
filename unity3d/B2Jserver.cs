@@ -9,15 +9,14 @@ using B2J;
 
 public class B2Jserver: MonoBehaviour {
 	
-	private List<string> loadedpath;
-	private List<string> loadingpath;
-	private List<B2Jrecord> records;
-	private int tcounter;
+	private List<string> _loadedpath;
+	private List<string> _loadingpath;
+	private List<B2Jrecord> _records;
 
 	public B2Jserver() {
-		loadedpath = new List<string> ();
-		loadingpath = new List<string> ();
-		records = new List<B2Jrecord> ();
+		_loadedpath = new List<string> ();
+		_loadingpath = new List<string> ();
+		_records = new List<B2Jrecord> ();
 	}
 
 	public void Start() {}
@@ -29,7 +28,7 @@ public class B2Jserver: MonoBehaviour {
 	public void OnDestroy() {}
 
 	public void load( string path ) {
-		if ( loadedpath.Contains ( path ) ) {
+		if ( _loadedpath.Contains ( path ) ) {
 			Debug.Log ( "'" + path + "' already loaded" );
 			return;
 		}
@@ -38,22 +37,24 @@ public class B2Jserver: MonoBehaviour {
 	
 	public void addNewRecord( B2Jrecord rec, string path ) {
 		if ( rec != null ) {
-			loadedpath.Add( path );
-			records.Add( rec );
-			Debug.Log ( "new record added: " + rec.name + ", " + records.Count + " record(s) loaded" );
+			_loadedpath.Add( path );
+			_records.Add( rec );
+			Debug.Log ( "new record added: " + rec.name + ", " + _records.Count + " record(s) loaded" );
 		}
 	}
 
-	public void syncPlayheads( List< B2Jplayhead > phs ) {
+	public void syncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
 	
 		// is there playheads not registered anymore?
 		foreach ( B2Jplayhead ph in phs ) {
-			if ( ! records.Contains( ph.Record ) ) {
+			if ( ! _records.Contains( ph.Record ) ) {
 				phs.Remove( ph );
+				dict.Remove( ph.Name );
 			}
 		}
 
-		foreach (B2Jrecord rec in records) {
+		// new records may have been loaded, creating a new playhead if required
+		foreach (B2Jrecord rec in _records) {
 			bool found = false;
 			foreach ( B2Jplayhead ph in phs ) {
 				if ( ph.Record == rec ) {
@@ -62,16 +63,18 @@ public class B2Jserver: MonoBehaviour {
 				}
 			}
 			if ( !found ) {
-				createNewPlayhead( rec, phs );
+				B2Jplayhead ph = createNewPlayhead( rec, phs, loop );
+				dict.Add( ph.Name, ph );
 			}
 		}
 	
 	}
 
-	private void createNewPlayhead( B2Jrecord rec, List< B2Jplayhead > phs ) {
+	private B2Jplayhead createNewPlayhead( B2Jrecord rec, List< B2Jplayhead > phs, B2Jloop loop ) {
 	
-		B2Jplayhead ph = new B2Jplayhead ( rec, B2Jloop.B2JLOOPNORMAL );
+		B2Jplayhead ph = new B2Jplayhead ( rec, loop );
 		phs.Add ( ph );
+		return ph;
 	
 	}
 

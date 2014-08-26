@@ -10,66 +10,113 @@ using B2J;
 public class B2Jplayer : B2JgenericPlayer {
 
 	public TextAsset Map_numediart;
-
-	private Dictionary < Transform, Matrix4x4 > world2local;
-	private Dictionary < string, Transform > armature;
 	private int correctionCount;
+
+	public bool normalise_weights;
+	private bool last_normalise_weights;
+
+	public bool interpolation;
+	private bool last_interpolation;
+
+	[ Range( 0.0f, 1.0f ) ]
+	public float percent;
+	private float lastPercent;
+
+	[ Range( 0.0f, 3.0f ) ]
+	public float speed;
+	private float lastSpeed;
 
 	// Use this for initialization
 	void Start () {
 
-		interpolate = false;
-		init();
-		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
-		if (B2J_server != null) {
-			B2J_server.load( "bvh2json/data/thomas_se_leve_02" );
-//			B2J_server.load( "bvh2json/data/capoiera" );
-		}
-		sync();
-		armature = new Dictionary < string, Transform > ();
-		world2local = new Dictionary < Transform, Matrix4x4 > ();
-		Transform[] all_transforms = GetComponentsInChildren<Transform>();
-		foreach( Transform transform in all_transforms ) {
-			armature.Add( transform.name, transform );
-			world2local.Add( transform, transform.worldToLocalMatrix );
-		}
-//		B2Jplayhead ph = getPlayhead( "capoiera" );
-		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
-		B2Jrecord rec = ph.Record;
-		B2Jmap m = B2J_maps["bvh_numediart"];
+		_defaultLoop = B2Jloop.B2JLOOPPALINDROME;
+		_interpolate = true;
+		_normaliseWeight = false;
 
-//		ph.Loop = B2Jloop.B2JLOOPPALINDROME;
+		normalise_weights = _normaliseWeight;
+		last_normalise_weights = normalise_weights;
+
+		interpolation = _interpolate;
+		last_interpolation = interpolation;
+
+		init();
+
+		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
+
+		if (B2Jserver != null) {
+			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
+			B2Jserver.load( "bvh2json/data/tensions_01" );
+			B2Jserver.load( "bvh2json/data/capoiera" );
+		}
+
+		sync();
+
+		percent = 0;
+		lastPercent = percent;
+
+		speed = 1;
+		lastSpeed = speed;
+
+		foreach ( B2Jplayhead ph in _b2jPlayheadList ) {
+			ph.Percent = percent;
+			ph.Speed = speed;
+		}
+
+		for( int i = 0; i < _b2jPlayheadList.Count; i++ ) {
+			if ( i == 0 ) {
+				_b2jPlayheadList[ i ].Weight = 1;
+			} else {
+				_b2jPlayheadList[ i ].Weight = 0;
+			}
+			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
+			ui.Mocap = _b2jPlayheadList[ i ].Name;
+			ui.playhead = _b2jPlayheadList[ i ];
+		}
 
 	}
 
 	void Update() {
 
 		sync();
-		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
-		if ( ph != null ) {
-			ph.Speed = 2.0f;
+
+		if ( normalise_weights != last_normalise_weights ) {
+			_normaliseWeight = normalise_weights;
+			last_normalise_weights = normalise_weights;
 		}
+
+		if ( interpolation != last_interpolation ) {
+			_interpolate = interpolation;
+			last_interpolation = interpolation;
+		}
+
+		if ( lastPercent != percent ) {
+			foreach ( B2Jplayhead ph in _b2jPlayheadList ) {
+				ph.Percent = percent;
+			}
+			lastPercent = percent;
+		}
+		 
+		if ( lastSpeed != speed ) {
+			foreach ( B2Jplayhead ph in _b2jPlayheadList ) {
+				ph.Speed = speed;
+			}
+			lastSpeed = speed;
+		}
+
 		render();
 
-		Quaternion corr = Quaternion.identity;
-		corr.eulerAngles = new Vector3 ( -90, 0, 0 );
-
-		Matrix4x4 loc = new Matrix4x4();
-		loc.SetTRS( Vector3.zero, corr, Vector3.one );
-		Matrix4x4 loci = loc.inverse;
-
 		// and applying on the model
-		foreach ( KeyValuePair< Transform, Quaternion > pair in updatedRots ) {
+		foreach ( KeyValuePair< Transform, Quaternion > pair in _updatedQuaternions ) {
 
 			Transform t = pair.Key;
 			Quaternion locValue = Quaternion.identity;
 			Matrix4x4 mat = new Matrix4x4();
 			mat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
 
-			Matrix4x4 tmat = world2local[ t ];
-			mat = tmat * mat * tmat.inverse;
+			Matrix4x4 tmat = _world2local[ t ];
+			mat = tmat* mat * tmat.inverse;
 
-			t.localRotation = localRotations[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) );
+			t.localRotation = _initialQuaternions[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
 
 			// thierry way
 //			Matrix4x4 tmat = world2local[ t ];

@@ -100,6 +100,7 @@ namespace B2J {
 
 		private float _cueIn;
 		private float _cueOut;
+		private float _percent;
 
 		// working values
 		Vector3 p1;
@@ -131,6 +132,7 @@ namespace B2J {
 			_cueIn = _record.keys[ 0 ].timestamp;
 			_cueOut = _record.keys[ _record.keys.Count - 1 ].timestamp;
 			_time = _cueIn;
+			_percent = 0;
 			_speed = 1;
 			_weight = 1;
 			_mult = 1;
@@ -208,13 +210,20 @@ namespace B2J {
 				_mult = value;
 			}
 		}
+		
+		public float Percent {
+			get {
+				return _percent;
+			}
+			set {
+				_percent = value;
+				_time = _cueIn + ( _cueOut - _cueIn ) * _percent;
+			}
+		}
 
 		public float CurrentTime {
 			get {
 				return _time;
-			}
-			set {
-				_time = value;
 			}
 		}
 
@@ -292,14 +301,15 @@ namespace B2J {
 					_speed *= -1;
 				}
 			}
-			
+
+			_percent = (_time - _cueIn) / (_cueOut - _cueIn);
+			_time += Time.deltaTime * 1000 * _speed;
+
 			if ( _weight == 0 ) {
 				return;
 			}
 
 			renderFrame( interpolation );
-
-			_time += Time.deltaTime * 1000 * _speed;
 
 		}
 		
@@ -402,63 +412,77 @@ namespace B2J {
 
 	public class B2JgenericPlayer : MonoBehaviour {
 		
-		public B2Jserver B2J_server;
-		protected Dictionary< string, B2Jmap > B2J_maps;
-		protected List< B2Jplayhead > B2J_playheads;
+		public B2Jserver B2Jserver;
+		protected Dictionary< string, B2Jmap > _b2jMaps;
+		protected Dictionary< string, B2Jplayhead > _b2jPlayheads;
+		protected List< B2Jplayhead > _b2jPlayheadList;
 
-		protected Dictionary< Transform, Quaternion > localRotations;
-		protected Dictionary< Transform, Vector3 > localTranslations;
-		protected Dictionary< Transform, Vector3 > localScales;
+		protected Dictionary < Transform, Matrix4x4 > _world2local;
+		protected Dictionary < string, Transform > _armature;
+		protected Dictionary< Transform, Quaternion > _initialQuaternions;
+		protected Dictionary< Transform, Vector3 > _initialTranslations;
+		protected Dictionary< Transform, Vector3 > _initialScales;
 
-		protected Dictionary< Transform, Quaternion > updatedRots;
-		protected Dictionary< Transform, Vector3 > updatedPos;
+		protected Dictionary< Transform, Quaternion > _allQuaternions;
+		protected Dictionary< Transform, Quaternion > _updatedQuaternions;
+		protected Dictionary< Transform, Vector3 > _updatedTranslations;
+		protected Dictionary< Transform, Vector3 > _updatedScales;
 
-		protected bool interpolate;
+		protected bool _interpolate;
+		protected bool _normaliseWeight;
+		protected B2Jloop _defaultLoop;
 
 		public B2JgenericPlayer() {
 
-			B2J_server = null;
-			B2J_maps = new Dictionary< string, B2Jmap >();
-			B2J_playheads = new List< B2Jplayhead > ();
+			B2Jserver = null;
+			_b2jMaps = new Dictionary< string, B2Jmap >();
+			_b2jPlayheads = new Dictionary< string, B2Jplayhead >();
+			_b2jPlayheadList = new List< B2Jplayhead > ();
 
 			// making a copy of the current object rotations and orientations
-			localRotations = new Dictionary< Transform, Quaternion > ();
-			localTranslations = new Dictionary< Transform, Vector3 > ();
-			localScales = new Dictionary< Transform, Vector3 > ();
+			_world2local = new Dictionary < Transform, Matrix4x4 >();
+			_armature = new Dictionary < string, Transform > ();
+			_initialQuaternions = new Dictionary< Transform, Quaternion > ();
+			_initialTranslations = new Dictionary< Transform, Vector3 > ();
+			_initialScales = new Dictionary< Transform, Vector3 > ();
 
-			updatedRots = new Dictionary< Transform, Quaternion >();
-			updatedPos = new Dictionary< Transform, Vector3 >();
+			_updatedQuaternions = new Dictionary< Transform, Quaternion >();
+			_updatedTranslations = new Dictionary< Transform, Vector3 >();
+			_updatedScales = new Dictionary< Transform, Vector3 >();
 
-			interpolate = true;
+			_interpolate = true;
+			_normaliseWeight = true;
+			_defaultLoop = B2Jloop.B2JLOOPNORMAL;
 
 		}
 
 		protected void init() {
 			Transform[] all_transforms = GetComponentsInChildren<Transform>();
 			foreach( Transform t in all_transforms ) {
-				localRotations.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
-				localTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
-				localScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+				_armature.Add( t.name, t );
+				_world2local.Add( t, t.worldToLocalMatrix );
+				_initialQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
+				_initialTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
+				_initialScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
 			}
+
 		}
 
 		public void loadMapping( TextAsset asset ) {
 			B2Jmap map = new B2Jmap();
 			if ( map.load( asset, this ) ) {
-				if ( B2J_maps.ContainsKey( map.model ) ) {
+				if ( _b2jMaps.ContainsKey( map.model ) ) {
 					Debug.Log( "A map with the same model as already been loaded! It will be overwritten by the current one: " + map.name );
 				}
-				B2J_maps.Add( map.model, map );
+				_b2jMaps.Add( map.model, map );
 			}
 		}
 
 		public B2Jplayhead getPlayhead( string name ) {
-
-			foreach( B2Jplayhead ph in B2J_playheads )
+			foreach( B2Jplayhead ph in _b2jPlayheadList )
 				if ( ph.Name == name )
 					return ph;
 			return null;
-
 		}
 
 		protected void sync() {
@@ -466,11 +490,11 @@ namespace B2J {
 		}
 
 		private void Synchronise() {
-			if ( B2J_server != null ) {
-				B2J_server.syncPlayheads( B2J_playheads );
+			if ( B2Jserver != null ) {
+				B2Jserver.syncPlayheads( _b2jPlayheadList, _b2jPlayheads, _defaultLoop );
 				// all playheads are now ok
-				foreach( B2Jplayhead ph in B2J_playheads ) {
-					ph.update( interpolate );
+				foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+					ph.update( _interpolate );
 				}
 			}
 		}
@@ -478,53 +502,80 @@ namespace B2J {
 		protected void render() {
 
 			float totalWeight = 0;
-			foreach( B2Jplayhead ph in B2J_playheads ) {
-				totalWeight += ph.Weight;
-			}
-			if ( totalWeight == 0 ) {
-				return;
-			} else if ( totalWeight < 1 ) {
+
+			if ( _normaliseWeight ) {
+				foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+					totalWeight += ph.Weight;
+				}
+				if ( totalWeight == 0 ) {
+					return;
+				} else if ( totalWeight < 1 ) {
+					totalWeight = 1;
+				} else {
+					totalWeight = 1 / totalWeight;
+				}
+			} else {
 				totalWeight = 1;
 			}
+
 			// storing all updated transforms in a temporary dict
-			updatedRots.Clear();
-			updatedPos.Clear();
-			foreach( B2Jplayhead ph in B2J_playheads ) {
+			_updatedQuaternions.Clear();
+			_updatedTranslations.Clear();
+			_updatedScales.Clear();
+
+			foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+
 				if ( ph.Weight == 0 ) {
 					continue;
 				}
 				// searching the map for this model
-				B2Jmap map = B2J_maps[ ph.Model ];
+				B2Jmap map = _b2jMaps[ ph.Model ];
 				// no map found, no need to go further!
 				if ( map == null ) {
 					continue;
 				}
+
 				// no need to go over all bones, just the ones of the mapping
 				foreach ( KeyValuePair< int, B2JmapList > pair in map.transformListById ) {
+
 					int bid = pair.Key;
 					B2JmapList tlist = pair.Value;
+
 					for ( int i = 0; i < tlist.transforms.Count; i++ ) {
+
 						Transform t = tlist.transforms[ i ];
 						float locw = tlist.weights[ i ];
-						float ratio = locw * ph.Weight / totalWeight; // calcul du weight absolu
-						if ( !updatedRots.ContainsKey( t ) ) {
-							updatedRots.Add( t, Quaternion.identity );
+						float ratio = locw * ph.Weight * totalWeight; // calcul du weight absolu
+
+						if ( !_updatedQuaternions.ContainsKey( t ) ) {
+							_updatedQuaternions.Add( t, Quaternion.identity );
 						}
-						if ( !updatedPos.ContainsKey( t ) ) {
-							updatedPos.Add( t, Vector3.zero );
+
+						if ( !_updatedTranslations.ContainsKey( t ) ) {
+							_updatedTranslations.Add( t, Vector3.zero );
 						}
+
 						Quaternion newrot = ph.Rotations[ bid ];
-						updatedRots[ t ] = Quaternion.Slerp( updatedRots[ t ], newrot, ratio );
+						if ( _normaliseWeight ) {
+							_updatedQuaternions[ t ] = Quaternion.Slerp( _updatedQuaternions[ t ], newrot, ratio );
+						} else {
+							// accumulation of rotations, until everything explodes...
+							Quaternion tmp = Quaternion.Slerp( Quaternion.identity, newrot, ratio );
+							_updatedQuaternions[ t ] *= tmp;
+						}
 						Vector3 newpos = ph.Positions[ bid ];
-						Vector3 currentp = updatedPos[ t ];
-						updatedPos[ t ] = new Vector3( 
+						Vector3 currentp = _updatedTranslations[ t ];
+						_updatedTranslations[ t ] = new Vector3( 
 	                      currentp.x + newpos.x * ratio * 0.01f,
 	                      currentp.y + newpos.y * ratio * 0.01f,
 	                      currentp.z + newpos.z * ratio * 0.01f );
 
 					}
+
 				}
+
 			}
+
 		}
 	}
 
