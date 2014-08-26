@@ -22,8 +22,8 @@ public class B2Jplayer : B2JgenericPlayer {
 		init();
 		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
 		if (B2J_server != null) {
-//			B2J_server.load( "bvh2json/data/thomas_se_leve_02" );
-			B2J_server.load( "bvh2json/data/capoiera" );
+			B2J_server.load( "bvh2json/data/thomas_se_leve_02" );
+//			B2J_server.load( "bvh2json/data/capoiera" );
 		}
 		sync();
 		armature = new Dictionary < string, Transform > ();
@@ -33,12 +33,12 @@ public class B2Jplayer : B2JgenericPlayer {
 			armature.Add( transform.name, transform );
 			world2local.Add( transform, transform.worldToLocalMatrix );
 		}
-		B2Jplayhead ph = getPlayhead( "capoiera" );
-//		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
+//		B2Jplayhead ph = getPlayhead( "capoiera" );
+		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
 		B2Jrecord rec = ph.Record;
 		B2Jmap m = B2J_maps["bvh_numediart"];
 
-		ph.Loop = B2Jloop.B2JLOOPPALINDROME;
+//		ph.Loop = B2Jloop.B2JLOOPPALINDROME;
 
 	}
 
@@ -46,9 +46,9 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		sync();
 		B2Jplayhead ph = getPlayhead( "thomas_se_leve_02" );
-//		if ( ph != null ) {
-//			ph.Speed = 0.5f;
-//		}
+		if ( ph != null ) {
+			ph.Speed = 2.0f;
+		}
 		render();
 
 		Quaternion corr = Quaternion.identity;
@@ -67,9 +67,9 @@ public class B2Jplayer : B2JgenericPlayer {
 			mat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
 
 			Matrix4x4 tmat = world2local[ t ];
-			mat = tmat* mat * tmat.inverse;
+			mat = tmat * mat * tmat.inverse;
 
-			t.localRotation = localRotations[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
+			t.localRotation = localRotations[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) );
 
 			// thierry way
 //			Matrix4x4 tmat = world2local[ t ];
