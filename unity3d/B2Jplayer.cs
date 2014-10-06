@@ -29,11 +29,11 @@ public class B2Jplayer : B2JgenericPlayer {
 	// Use this for initialization
 	void Start () {
 
-		_defaultLoop = B2Jloop.B2JLOOPPALINDROME;
+		_defaultLoop = B2Jloop.B2JLOOP_PALINDROME;
 		_interpolate = true;
-		_normaliseWeight = false;
+		_normaliseRotationWeight = false;
 
-		normalise_weights = _normaliseWeight;
+		normalise_weights = _normaliseRotationWeight;
 		last_normalise_weights = normalise_weights;
 
 		interpolation = _interpolate;
@@ -45,7 +45,7 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		if (B2Jserver != null) {
 			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
-			B2Jserver.load( "bvh2json/data/tensions_01" );
+//			B2Jserver.load( "bvh2json/data/tensions_01" );
 			B2Jserver.load( "bvh2json/data/capoiera" );
 		}
 
@@ -80,7 +80,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		sync();
 
 		if ( normalise_weights != last_normalise_weights ) {
-			_normaliseWeight = normalise_weights;
+			_normaliseRotationWeight = normalise_weights;
 			last_normalise_weights = normalise_weights;
 		}
 
@@ -109,15 +109,16 @@ public class B2Jplayer : B2JgenericPlayer {
 		foreach ( KeyValuePair< Transform, Quaternion > pair in _updatedQuaternions ) {
 
 			Transform t = pair.Key;
-			Quaternion locValue = Quaternion.identity;
-			Matrix4x4 mat = new Matrix4x4();
-			mat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
-
-			Matrix4x4 tmat = _world2local[ t ];
-			mat = tmat* mat * tmat.inverse;
-
-			t.localRotation = _initialQuaternions[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
-
+			Quaternion q = pair.Value;
+			t.localRotation = q;
+			
+//			Transform t = pair.Key;
+//			Quaternion locValue = Quaternion.identity;
+//			Matrix4x4 mat = new Matrix4x4();
+//			mat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
+//			Matrix4x4 tmat = _world2local[ t ];
+//			mat = tmat* mat * tmat.inverse;
+//			t.localRotation = _initialQuaternions[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
 			// thierry way
 //			Matrix4x4 tmat = world2local[ t ];
 //			mat = tmat.inverse * mat * tmat;
@@ -125,6 +126,7 @@ public class B2Jplayer : B2JgenericPlayer {
 			// françois way
 //			mat = loci * mat * loc;
 //			t.localRotation = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) * localRotations[ t ];
+
 		}
 
 	}

@@ -79,9 +79,9 @@ namespace B2J {
 	}
 
 	public enum B2Jloop {
-		B2JLOOPNONE = 0,
-		B2JLOOPNORMAL = 1,
-		B2JLOOPPALINDROME = 2
+		B2JLOOP_NONE = 0,
+		B2JLOOP_NORMAL = 1,
+		B2JLOOP_PALINDROME = 2
 	}
 
 	public class B2Jplayhead {
@@ -284,20 +284,20 @@ namespace B2J {
 				
 				_time = _cueOut;
 				
-				if ( _loop == B2Jloop.B2JLOOPNONE ) {
+				if ( _loop == B2Jloop.B2JLOOP_NONE ) {
 					_active = false;
 					return;
-				} else if ( _loop == B2Jloop.B2JLOOPNORMAL ) {
+				} else if ( _loop == B2Jloop.B2JLOOP_NORMAL ) {
 					// go back to beginning
 					_time = _cueIn;
-				} else if ( _loop == B2Jloop.B2JLOOPPALINDROME ) {
+				} else if ( _loop == B2Jloop.B2JLOOP_PALINDROME ) {
 					// go back to beginning
 					_speed *= -1;
 				}
 				
 			} else if ( _time < _cueIn ) {
 				_time = _cueIn;
-				if ( _loop == B2Jloop.B2JLOOPPALINDROME ) {
+				if ( _loop == B2Jloop.B2JLOOP_PALINDROME ) {
 					_speed *= -1;
 				}
 			}
@@ -423,13 +423,20 @@ namespace B2J {
 		protected Dictionary< Transform, Vector3 > _initialTranslations;
 		protected Dictionary< Transform, Vector3 > _initialScales;
 
-		protected Dictionary< Transform, Quaternion > _allQuaternions;
 		protected Dictionary< Transform, Quaternion > _updatedQuaternions;
 		protected Dictionary< Transform, Vector3 > _updatedTranslations;
 		protected Dictionary< Transform, Vector3 > _updatedScales;
 
+		protected Dictionary< Transform, Quaternion > _allQuaternions;
+		protected Dictionary< Transform, Vector3 > _allTranslations;
+		protected Dictionary< Transform, Vector3 > _allScales;
+
+		protected Dictionary< Transform, float > _weights;
+
 		protected bool _interpolate;
-		protected bool _normaliseWeight;
+		protected bool _normaliseRotationWeight;
+		protected bool _normaliseTranslationWeight;
+		protected bool _normaliseScaleWeight;
 		protected B2Jloop _defaultLoop;
 
 		public B2JgenericPlayer() {
@@ -442,28 +449,45 @@ namespace B2J {
 			// making a copy of the current object rotations and orientations
 			_world2local = new Dictionary < Transform, Matrix4x4 >();
 			_armature = new Dictionary < string, Transform > ();
+
 			_initialQuaternions = new Dictionary< Transform, Quaternion > ();
 			_initialTranslations = new Dictionary< Transform, Vector3 > ();
 			_initialScales = new Dictionary< Transform, Vector3 > ();
+
+			_allQuaternions = new Dictionary< Transform, Quaternion > ();
+			_allTranslations = new Dictionary< Transform, Vector3 > ();
+			_allScales = new Dictionary< Transform, Vector3 > ();
 
 			_updatedQuaternions = new Dictionary< Transform, Quaternion >();
 			_updatedTranslations = new Dictionary< Transform, Vector3 >();
 			_updatedScales = new Dictionary< Transform, Vector3 >();
 
+			_weights = new Dictionary< Transform, float > ();
+
 			_interpolate = true;
-			_normaliseWeight = true;
-			_defaultLoop = B2Jloop.B2JLOOPNORMAL;
+			_normaliseRotationWeight = true;
+			_defaultLoop = B2Jloop.B2JLOOP_NORMAL;
 
 		}
 
 		protected void init() {
+
 			Transform[] all_transforms = GetComponentsInChildren<Transform>();
 			foreach( Transform t in all_transforms ) {
+
 				_armature.Add( t.name, t );
 				_world2local.Add( t, t.worldToLocalMatrix );
+
 				_initialQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
 				_initialTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
 				_initialScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+
+				_allQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
+				_allTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
+				_allScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+
+				_weights.Add( t, 1 );
+
 			}
 
 		}
@@ -501,18 +525,30 @@ namespace B2J {
 
 		protected void render() {
 
-			float totalWeight = 0;
+//			Debug.LogError ( "build smooth method on this basis: " +
+//								"each map define its own smooth, meaning smooth must be rendererd using _allQuaternions during main loop. ");
 
-			if ( _normaliseWeight ) {
+
+			float totalWeight = 0;
+			
+			// reseting all weights
+			foreach ( KeyValuePair< string, Transform > pair in _armature ) {
+				_weights[ pair.Value ] = 1.0f;
+			}
+
+			// retrieval of total weight per bone
+			// a transform can be influenced by several playheads
+			// and in each MAP, a transform can be influenced by several b2j bones
+			if ( _normaliseRotationWeight ) {
 				foreach( B2Jplayhead ph in _b2jPlayheadList ) {
-					totalWeight += ph.Weight;
-				}
-				if ( totalWeight == 0 ) {
-					return;
-				} else if ( totalWeight < 1 ) {
-					totalWeight = 1;
-				} else {
-					totalWeight = 1 / totalWeight;
+					B2Jmap map = _b2jMaps[ ph.Model ];
+					// no map found, no need to go further!
+					if ( map == null ) {
+						continue;
+					}
+					foreach( Transform t in map.uniqueTransforms ) {
+						_weights[ t ] += ph.Weight;
+					}
 				}
 			} else {
 				totalWeight = 1;
@@ -522,6 +558,37 @@ namespace B2J {
 			_updatedQuaternions.Clear();
 			_updatedTranslations.Clear();
 			_updatedScales.Clear();
+
+//Debug.LogError( "FINISH THIS!" );
+//			// first: collecting new orientations, translations & scales per map
+//			foreach( B2Jmap map in _b2jMaps ) {
+//
+//				float lWeight = 0;
+//				// rendering the weight of the plays heads related to this map
+//				if ( _normaliseRotationWeight ) {
+//					foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+//						B2Jmap bm = _b2jMaps[ ph.Model ];
+//						if ( map == null || bm != map ) {
+//							continue;
+//						} else if ( bm == map ) {
+//							lWeight += ph.Weight;
+//						}
+//					}
+//					if ( lWeight > 1 ) {
+//						lWeight = 1 / lWeight;
+//					} else if ( lWeight < 1 ) {
+//						lWeight = 1;
+//					}
+//				} else {
+//					lWeight = 1;
+//				}
+//				// retrieval of data, second loop on playheads
+//				foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+//					
+//				}
+//				
+//
+//			}
 
 			foreach( B2Jplayhead ph in _b2jPlayheadList ) {
 
@@ -535,40 +602,87 @@ namespace B2J {
 					continue;
 				}
 
+				float smooth = map.smooth;
+
 				// no need to go over all bones, just the ones of the mapping
-				foreach ( KeyValuePair< int, B2JmapList > pair in map.transformListById ) {
+				foreach ( KeyValuePair< int, B2JtransformList > pair in map.transformListById ) {
 
 					int bid = pair.Key;
-					B2JmapList tlist = pair.Value;
+					B2JtransformList tlist = pair.Value;
 
 					for ( int i = 0; i < tlist.transforms.Count; i++ ) {
 
 						Transform t = tlist.transforms[ i ];
 						float locw = tlist.weights[ i ];
+						if ( _normaliseRotationWeight ) {
+							totalWeight = _weights[ t ];
+							if ( totalWeight == 0 ) {
+								continue;
+							} else if ( totalWeight < 1 ) {
+								totalWeight = 1;
+							} else {
+								totalWeight = 1 / totalWeight;
+							}
+						}
+
 						float ratio = locw * ph.Weight * totalWeight; // calcul du weight absolu
 
-						if ( !_updatedQuaternions.ContainsKey( t ) ) {
-							_updatedQuaternions.Add( t, Quaternion.identity );
+						if ( map.enable_rotations ) {
+							if ( !_updatedQuaternions.ContainsKey( t ) ) {
+								// _updatedQuaternions.Add( t, Quaternion.identity );
+								Quaternion qbase = new Quaternion(
+									_initialQuaternions[t].x,
+									_initialQuaternions[t].y,
+									_initialQuaternions[t].z,
+									_initialQuaternions[t].w ); 
+								_updatedQuaternions.Add( t, qbase );
+							}
+							Quaternion newrot = ph.Rotations[ bid ];
+							// depending on the record model, quaternion is processed differently
+							if ( ph.Model == "bvh_numediart" ) {
+								Matrix4x4 mat = new Matrix4x4();
+								mat.SetTRS( Vector3.zero, newrot, Vector3.one );
+								Matrix4x4 tmat = _world2local[ t ];
+								mat = tmat* mat * tmat.inverse;
+								newrot = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
+							} else {
+								Debug.LogError( "enable_rotations :: UNKNOWN B2J MODEL!!! : " + ph.Model );
+							}
+							if ( _normaliseRotationWeight ) {
+								_updatedQuaternions[ t ] = Quaternion.Slerp(
+									_updatedQuaternions[ t ],
+									_initialQuaternions[t] * newrot,
+									ratio
+									);
+							} else {
+								// accumulation of rotations, until everything explodes...
+								Quaternion tmp = Quaternion.Slerp( Quaternion.identity, newrot, ratio );
+								_updatedQuaternions[ t ] *= tmp;
+							}
 						}
 
-						if ( !_updatedTranslations.ContainsKey( t ) ) {
-							_updatedTranslations.Add( t, Vector3.zero );
-						}
+						if ( map.enable_translations ) {
 
-						Quaternion newrot = ph.Rotations[ bid ];
-						if ( _normaliseWeight ) {
-							_updatedQuaternions[ t ] = Quaternion.Slerp( _updatedQuaternions[ t ], newrot, ratio );
-						} else {
-							// accumulation of rotations, until everything explodes...
-							Quaternion tmp = Quaternion.Slerp( Quaternion.identity, newrot, ratio );
-							_updatedQuaternions[ t ] *= tmp;
+							if ( !_updatedTranslations.ContainsKey( t ) ) {
+								_updatedTranslations.Add( t, Vector3.zero );
+							}
+
+							Vector3 newpos = ph.Positions[ bid ];
+							if ( ph.Model == "bvh_numediart" ) {
+								newpos *= 0.01f;
+							} else {
+								Debug.LogError( "enable_translations :: UNKNOWN B2J MODEL!!! : " + ph.Model );
+							}
+
+							if ( _normaliseTranslationWeight ) {
+								newpos *= ratio;
+							} else {
+								_updatedTranslations[ t ] += newpos;
+							}
+
+							_updatedTranslations[ t ] += newpos;
+
 						}
-						Vector3 newpos = ph.Positions[ bid ];
-						Vector3 currentp = _updatedTranslations[ t ];
-						_updatedTranslations[ t ] = new Vector3( 
-	                      currentp.x + newpos.x * ratio * 0.01f,
-	                      currentp.y + newpos.y * ratio * 0.01f,
-	                      currentp.z + newpos.z * ratio * 0.01f );
 
 					}
 
@@ -577,17 +691,32 @@ namespace B2J {
 			}
 
 		}
+
 	}
 
-	public class B2JmapList {
-
+	public class B2JtransformList {
 		public List< Transform > transforms;
 		public List< float > weights;
-		public B2JmapList() {
+		public B2JtransformList() {
 			transforms = new List < Transform > ();
 			weights = new List < float > ();
 		}
+	}
 
+	public enum B2JsmoothMethod {
+		B2JSMOOTH_NONE = 0,
+		B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE = 1
+	}
+
+	public class B2JmapLocalValues {
+		public Dictionary< Transform, Quaternion > quaternions;
+		public Dictionary< Transform, Vector3 > translations;
+		public Dictionary< Transform, Vector3 > scales;
+		public B2JmapLocalValues() {
+			quaternions = new Dictionary< Transform, Quaternion >();
+			translations = new Dictionary< Transform, Vector3 >();
+			scales = new Dictionary< Transform, Vector3 >();
+		}
 	}
 
 	public class B2Jmap {
@@ -596,16 +725,24 @@ namespace B2J {
 		public string name;
 		public string description;
 		public float version;
-//		public Dictionary< string, Transform > transformByName;
-//		public Dictionary< int, Transform > transformById;
-		public Dictionary< string, B2JmapList > transformListByName;
-		public Dictionary< int, B2JmapList > transformListById;
+		public List< Transform > uniqueTransforms; // list of all the transforms concerned by this map
+		public Dictionary< string, B2JtransformList > transformListByName; // relation between mocap and transform(s) + weight, by mocap bone name
+		public Dictionary< int, B2JtransformList > transformListById; // relation between mocap and transform(s) + weight, by mocap bone id
+		public bool enable_rotations = true;
+		public bool enable_translations = true;
+		public bool enable_scales = true;
+
+		public B2JmapLocalValues locals;
+		public float smooth;
+		public B2JsmoothMethod smooth_mehod;
 
 		public B2Jmap() {
-//			transformByName = new Dictionary< string, Transform >();
-//			transformById = new Dictionary< int, Transform >();
-			transformListByName = new Dictionary< string, B2JmapList > ();
-			transformListById = new Dictionary< int, B2JmapList > ();
+			uniqueTransforms = new List< Transform > ();
+			transformListByName = new Dictionary< string, B2JtransformList > ();
+			transformListById = new Dictionary< int, B2JtransformList > ();
+			locals = new B2JmapLocalValues ();
+// TEMPORARY, TO EXPOSE IN JSON
+			smooth_mehod = B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE;
 		}
 		
 		// pass the text assets containung the mapping and the game object (an avatar...) where the bones are
@@ -623,13 +760,29 @@ namespace B2J {
 				return false;
 			}
 			if ( System.String.Compare ( (string) data ["type"], "mapping") != 0) {
-				Debug.Log ( "B2J maps must have a type 'maaping'" );
+				Debug.Log ( "B2J maps must have a type 'mapping'" );
 				return false;
 			}
 			model = (string) data[ "model" ];
 			name = (string) data[ "name" ];
 			description = (string) data[ "desc" ];
 			version = float.Parse( "" + data[ "version" ] );
+ 
+			int er = int.Parse( "" + data[ "enable_rotations" ] );
+			if ( er == 0 ) {
+				enable_rotations = false;
+			}
+			int et = int.Parse( "" + data[ "enable_translations" ] );
+			if ( et == 0 ) {
+				enable_translations = false;
+			}
+			int es = int.Parse( "" + data[ "enable_scales" ] );
+			if ( es == 0 ) {
+				enable_scales = false;
+			}
+
+			smooth = float.Parse( "" + data[ "smooth" ] );
+
 			IList bvh_bones = ( IList ) data[ "list" ];
 			Transform[] all_transforms = obj.GetComponentsInChildren < Transform > ();
 			if ( data.Contains( "relations" ) ) {
@@ -653,12 +806,15 @@ namespace B2J {
 							continue;
 						}
 						IList relmaps = ( IList ) rel.Value;
-						B2JmapList ml = new B2JmapList();
+						B2JtransformList ml = new B2JtransformList();
 						bool store = false;
 						for ( int j = 0; j < relmaps.Count; j++ ) {
 							IDictionary rmap = ( IDictionary ) relmaps[ j ];
 							foreach( Transform transform in all_transforms ) {
 								if ( System.String.Compare( transform.name, rmap["bone"].ToString() ) == 0 ) {
+									if ( !uniqueTransforms.Contains( transform ) ) {
+										uniqueTransforms.Add ( transform );
+									}
 									ml.transforms.Add( transform );
 									ml.weights.Add( float.Parse( rmap["weight"].ToString() ) );
 									store = true;
@@ -678,30 +834,6 @@ namespace B2J {
 			} else {
 				return false;
 			}
-
-//			foreach( KeyValuePair< int, B2JmapList > mapl in transformListById ) {
-//				B2JmapList ml = mapl.Value;
-//				Debug.Log( "map: " + bvh_bones[ mapl.Key ] );
-//				for( int i = 0; i < ml.transforms.Count; i++ ) {
-//					Debug.Log( ">> " + ml.transforms[ i ].name + " = " + ml.weights[ i ] );
-//				}
-//			}
-
-//			if ( bvh_bones.Count != transform_names.Count ) {
-//				Debug.Log ( "local count and foreign doesn't match! local: " + bvh_bones.Count +", foreign: "+ transform_names.Count );
-//				return false;
-//			}
-
-			// validation of foreigns
-//			for ( int i = 0; i < transform_names.Count; i++ ) {
-//				foreach( Transform transform in all_transforms ) {
-//					if ( System.String.Compare( transform.name, (string) transform_names[ i ] ) == 0 ) {
-//						transformByName.Add( (string) bvh_bones[ i ], transform );
-//						transformById.Add( i, transform );
-//						break;
-//					}
-//				}
-//			}
 
 			return true;
 			
@@ -731,6 +863,8 @@ namespace B2J {
 		private List<int> summary_s;
 		private List<int> idsFullList;
 		private List<string> summary_rotation_order;
+
+		private B2Jrecord tmp_rec;
 
 		public static Quaternion renderQuaternion( Vector3 eulers, string roto ) {
 			
@@ -782,18 +916,18 @@ namespace B2J {
 			parseSummary( (IDictionary) data["summary"] );
 			parseRotationOrder ((IList) data ["rotation_order"]);
 
-			B2Jrecord rec = new B2Jrecord();
-			rec.type = "" + data[ "type" ];
-			rec.version = float.Parse( ""+data[ "version" ] );
-			rec.desc = "" + data[ "desc" ];
-			rec.name = "" + data[ "name" ];
-			rec.model = "" + data[ "model" ];
-			rec.origin = "" + data[ "origin" ];
-			rec.keyCount = int.Parse( "" + data[ "keys" ] );
+			tmp_rec = new B2Jrecord();
+			tmp_rec.type = "" + data[ "type" ];
+			tmp_rec.version = float.Parse( ""+data[ "version" ] );
+			tmp_rec.desc = "" + data[ "desc" ];
+			tmp_rec.name = "" + data[ "name" ];
+			tmp_rec.model = "" + data[ "model" ];
+			tmp_rec.origin = "" + data[ "origin" ];
+			tmp_rec.keyCount = int.Parse( "" + data[ "keys" ] );
 
-			rec.groups = parseGroups( data );
-			rec.bones = parseBones( data );
-			rec.keys = parseKeys( data, rec.bones );
+			tmp_rec.groups = parseGroups( data );
+			tmp_rec.bones = parseBones( data );
+			tmp_rec.keys = parseKeys( data );
 
 			tmphierarchies.Clear ();
 			summary_p.Clear ();
@@ -804,18 +938,18 @@ namespace B2J {
 			summary_euler = null;
 			summary_s = null;
 
-			return rec;
+			return tmp_rec;
 			
 		}
 
-		private List<B2Jkey> parseKeys( IDictionary data, List<B2Jbone> bones ) {
+		private List<B2Jkey> parseKeys( IDictionary data ) {
 
 			List<B2Jkey> output = new List<B2Jkey> ();
 			IList dataks = (IList) data[ "data" ];
 			B2Jkey prevk = null;
 			for (int i = 0; i < dataks.Count; i++) {
 				// waiting for the first key to be id 0
-				B2Jkey newk = parseKey( (IDictionary) dataks[ i ], bones, prevk );
+				B2Jkey newk = parseKey( (IDictionary) dataks[ i ], prevk );
 				if ( newk != null ) {
 					output.Add( newk );
 				}
@@ -826,7 +960,7 @@ namespace B2J {
 		
 		}
 
-		private B2Jkey parseKey( IDictionary keydata, List<B2Jbone> bones, B2Jkey previouskey ) {
+		private B2Jkey parseKey( IDictionary keydata, B2Jkey previouskey ) {
 		
 			B2Jkey newkey = new B2Jkey ();
 			newkey.kID = int.Parse ( "" + keydata ["id"] );
@@ -834,7 +968,7 @@ namespace B2J {
 
 			// positions list
 			if (summary_p.Count > 0) {
-				for (int i = 0; i < bones.Count; i++) {
+				for (int i = 0; i < tmp_rec.bones.Count; i++) {
 					if ( previouskey == null )
 						newkey.positions.Add( new Vector3( 0,0,0 ) );
 					else
@@ -851,7 +985,7 @@ namespace B2J {
 
 			// rotations list
 			if (summary_euler.Count > 0) {
-				for (int i = 0; i < bones.Count; i++) {
+				for (int i = 0; i < tmp_rec.bones.Count; i++) {
 					if ( previouskey == null ) {
 						newkey.rotations.Add ( Quaternion.identity );
 						newkey.eulers.Add( Vector3.zero );
@@ -905,7 +1039,7 @@ namespace B2J {
 			// scales list
 			if (summary_s.Count > 0) {
 				newkey.scales = new List<Vector3> ();
-				for (int i = 0; i < bones.Count; i++) {
+				for (int i = 0; i < tmp_rec.bones.Count; i++) {
 					if ( previouskey == null )
 						newkey.scales.Add ( new Vector3 (1, 1, 1) );
 					else

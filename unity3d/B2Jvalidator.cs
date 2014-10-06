@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -35,9 +35,9 @@ public class B2Jvalidator : B2JgenericPlayer {
 		m = _b2jMaps["bvh_numediart"];
 		// z axis should point in the bone direction
 		defaultRot = new Dictionary < Transform, Quaternion >();
-		foreach ( KeyValuePair< int, B2JmapList > pair in m.transformListById ) {
+		foreach ( KeyValuePair< int, B2JtransformList > pair in m.transformListById ) {
 			B2Jbone b = rec.bones[ pair.Key ];
-			B2JmapList ml = pair.Value;
+			B2JtransformList ml = pair.Value;
 			for ( int i = 0; i < ml.transforms.Count; i++ ) {
 				Transform t = ml.transforms[ i ];
 				t.localPosition += b.head * 0.01f;
@@ -48,10 +48,6 @@ public class B2Jvalidator : B2JgenericPlayer {
 			}
 		}
 
-		if ( ph != null ) {
-			ph.Speed = 2.0f;
-		}
-
 	}
 	
 	// Update is called once per frame
@@ -60,9 +56,9 @@ public class B2Jvalidator : B2JgenericPlayer {
 		sync();
 		render();
 
-		foreach ( KeyValuePair< int, B2JmapList > pair in m.transformListById ) {
+		foreach ( KeyValuePair< int, B2JtransformList > pair in m.transformListById ) {
 			B2Jbone b = rec.bones[ pair.Key ];
-			B2JmapList ml = pair.Value;
+			B2JtransformList ml = pair.Value;
 			for ( int i = 0; i < ml.transforms.Count; i++ ) {
 				Quaternion q = ph.Rotations[ pair.Key ];
 				Transform t = _armature[ ml.transforms[ i ].name ];
