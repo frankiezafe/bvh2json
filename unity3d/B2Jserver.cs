@@ -93,10 +93,10 @@ namespace B2J {
 					modified = true;
 				}
 			}
+			
+			newRecord = false;
 
 			return modified;
-
-			newRecord = false;
 		
 		}
 
