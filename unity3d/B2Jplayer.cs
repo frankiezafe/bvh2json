@@ -110,7 +110,8 @@ public class B2Jplayer : B2JgenericPlayer {
 		Render();
 
 		// and applying on the model
-		foreach ( KeyValuePair< Transform, Quaternion > pair in updatedQuaternions ) {
+//		foreach ( KeyValuePair< Transform, Quaternion > pair in updatedQuaternions ) {
+		foreach ( KeyValuePair< Transform, Quaternion > pair in quaternions ) {
 
 			Transform t = pair.Key;
 			Quaternion q = pair.Value;

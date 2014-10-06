@@ -18,6 +18,14 @@ namespace B2J {
 				( dest.z - orig.z ) * ratio
 				);
 		}
+
+		public static Quaternion copy( Quaternion q ) {
+			return new Quaternion ( q.x, q.y, q.z, q.w );
+		}
+
+		public static Vector3 copy( Vector3 v ) {
+			return new Vector3 ( v.x, v.y, v.z );
+		}
 		
 	}
 
