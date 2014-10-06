@@ -89,7 +89,7 @@ namespace B2J {
 			verbose = true;
 		}
 
-		protected void init() {
+		protected void InitPlayer() {
 			
 			Transform[] all_transforms = GetComponentsInChildren<Transform>();
 			foreach( Transform t in all_transforms ) {

@@ -199,7 +199,7 @@ namespace B2J {
 		
 		public void update( bool interpolation ) {
 			
-			if ( !_active || _speed == 0 ) {
+			if ( !_active ) {
 				// not ready to use, create mapping or reactivate...
 				return;
 			}

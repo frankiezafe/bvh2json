@@ -77,9 +77,29 @@ namespace B2J {
 		public Dictionary< Transform, Vector3 > getScales() {
 			return scales;
 		}
+		
+		public string getName() {
+			return map.name;
+		}
 
 		public float getWeight() {
 			return weight;
+		}
+
+		public void setWeight( float w ) {
+			weight = w;
+		}
+
+		public float getSmoothStrength() {
+			return smooth_strength;
+		}
+
+		public void setSmoothStrength( float s ) {
+			smooth_strength = s;
+		}
+
+		public void setSmoothMethod( B2JsmoothMethod m ) {
+			map.smooth_mehod = m;
 		}
 
 		private void setMap( B2Jmap map ) {

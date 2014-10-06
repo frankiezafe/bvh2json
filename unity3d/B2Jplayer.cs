@@ -38,7 +38,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		interpolation = interpolate;
 		last_interpolation = interpolation;
 
-		init();
+		InitPlayer();
 
 		LoadMapping( Map_numediart ); // mapping for model "bvh_numediart"
 
@@ -59,6 +59,11 @@ public class B2Jplayer : B2JgenericPlayer {
 		foreach ( B2Jplayhead ph in playheadList ) {
 			ph.Percent = percent;
 			ph.Speed = speed;
+		}
+
+		foreach ( B2Jblender bb in blenderList ) {
+			B2JblenderUI ui = gameObject.AddComponent<B2JblenderUI>();
+			ui.blender = bb;
 		}
 
 		for( int i = 0; i < playheadList.Count; i++ ) {

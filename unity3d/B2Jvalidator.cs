@@ -23,7 +23,7 @@ public class B2Jvalidator : B2JgenericPlayer {
 
 		Quiet();
 
-		init();
+		InitPlayer();
 
 		LoadMapping( Map_numediart ); // mapping for model "bvh_numediart"
 		if ( B2Jserver != null ) {
