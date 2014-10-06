@@ -30,7 +30,7 @@ namespace B2J {
 			transformListByName = new Dictionary< string, B2JtransformList > ();
 			transformListById = new Dictionary< int, B2JtransformList > ();
 			locals = new B2JmapLocalValues ();
-			// TEMPORARY, TO EXPOSE IN JSON
+//			Debug.Log ("public B2Jmap :: TEMPORARY smooth_mehod HARDCODING, TO EXPOSE IN JSON");
 			smooth_mehod = B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE;
 		}
 		
@@ -38,18 +38,18 @@ namespace B2J {
 		public bool load( TextAsset bvhj, B2JgenericPlayer obj ) { 
 			
 			if ( bvhj == null) {
-				Debug.Log ( "B2Jmap:: not loaded" );
+				Debug.LogError ( "B2Jmap:: not loaded" );
 				return false;
 			} else {
-				Debug.Log ( "B2Jmap:: '" + bvhj.name + "' successfully loaded" );
+//				Debug.Log ( "B2Jmap:: '" + bvhj.name + "' successfully loaded" );
 			}
 			IDictionary data = ( IDictionary ) Json.Deserialize ( bvhj.ToString() );
 			if ( data == null) {
-				Debug.Log ( "Failed to parse " + bvhj.name );
+				Debug.LogError ( "Failed to parse " + bvhj.name );
 				return false;
 			}
 			if ( System.String.Compare ( (string) data ["type"], "mapping") != 0) {
-				Debug.Log ( "B2J maps must have a type 'mapping'" );
+				Debug.LogError ( "B2J maps must have a type 'mapping'" );
 				return false;
 			}
 			model = (string) data[ "model" ];

@@ -57,20 +57,20 @@ public class B2Jplayer : B2JgenericPlayer {
 		speed = 1;
 		lastSpeed = speed;
 
-		foreach ( B2Jplayhead ph in _b2jPlayheadList ) {
+		foreach ( B2Jplayhead ph in _playheadList ) {
 			ph.Percent = percent;
 			ph.Speed = speed;
 		}
 
-		for( int i = 0; i < _b2jPlayheadList.Count; i++ ) {
+		for( int i = 0; i < _playheadList.Count; i++ ) {
 			if ( i == 0 ) {
-				_b2jPlayheadList[ i ].Weight = 1;
+				_playheadList[ i ].Weight = 1;
 			} else {
-				_b2jPlayheadList[ i ].Weight = 0;
+				_playheadList[ i ].Weight = 0;
 			}
 			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
-			ui.Mocap = _b2jPlayheadList[ i ].Name;
-			ui.playhead = _b2jPlayheadList[ i ];
+			ui.Mocap = _playheadList[ i ].Name;
+			ui.playhead = _playheadList[ i ];
 		}
 
 	}
@@ -90,14 +90,14 @@ public class B2Jplayer : B2JgenericPlayer {
 		}
 
 		if ( lastPercent != percent ) {
-			foreach ( B2Jplayhead ph in _b2jPlayheadList ) {
+			foreach ( B2Jplayhead ph in _playheadList ) {
 				ph.Percent = percent;
 			}
 			lastPercent = percent;
 		}
 		 
 		if ( lastSpeed != speed ) {
-			foreach ( B2Jplayhead ph in _b2jPlayheadList ) {
+			foreach ( B2Jplayhead ph in _playheadList ) {
 				ph.Speed = speed;
 			}
 			lastSpeed = speed;

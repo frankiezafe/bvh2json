@@ -60,15 +60,15 @@ namespace B2J {
 			
 			TextAsset bvhj = Resources.Load( path ) as TextAsset;
 			if ( bvhj == null) {
-				Debug.Log ( "Bvh2jsonReader::" + path + " not found" );
+				Debug.LogError ( "Bvh2jsonReader::" + path + " not found" );
 				return null;
 			} else {
-				Debug.Log ( "Bvh2jsonReader::" + path + " successfully loaded" );
+//				Debug.Log ( "Bvh2jsonReader::" + path + " successfully loaded" );
 			}
 			
 			IDictionary data = ( IDictionary ) Json.Deserialize ( bvhj.ToString() );
 			if ( data == null) {
-				Debug.Log ( "Failed to parse " + path );
+				Debug.LogError ( "Failed to parse " + path );
 				return null;
 			}
 			

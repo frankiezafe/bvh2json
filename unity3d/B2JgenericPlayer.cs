@@ -11,9 +11,11 @@ namespace B2J {
 	public class B2JgenericPlayer : MonoBehaviour {
 		
 		public B2Jserver B2Jserver;
-		protected Dictionary< string, B2Jmap > _b2jMaps;
-		protected Dictionary< string, B2Jplayhead > _b2jPlayheads;
-		protected List< B2Jplayhead > _b2jPlayheadList;
+		protected Dictionary< string, B2Jmap > _maps;
+		protected Dictionary< string, B2JmapBlend > _mapblendByModel; // preprocessing of the mocap blend happens here
+		protected List< B2JmapBlend > _mapblendList;
+		protected Dictionary< string, B2Jplayhead > _playheadDict;
+		protected List< B2Jplayhead > _playheadList;
 		
 		protected Dictionary < Transform, Matrix4x4 > _world2local;
 		protected Dictionary < string, Transform > _armature;
@@ -36,13 +38,18 @@ namespace B2J {
 		protected bool _normaliseTranslationWeight;
 		protected bool _normaliseScaleWeight;
 		protected B2Jloop _defaultLoop;
-		
+
+		protected bool verbose;
+		private bool forceSync;
+
 		public B2JgenericPlayer() {
 			
 			B2Jserver = null;
-			_b2jMaps = new Dictionary< string, B2Jmap >();
-			_b2jPlayheads = new Dictionary< string, B2Jplayhead >();
-			_b2jPlayheadList = new List< B2Jplayhead > ();
+			_maps = new Dictionary< string, B2Jmap >();
+			_mapblendByModel = new Dictionary< string, B2JmapBlend >();
+			_mapblendList = new List< B2JmapBlend >();
+			_playheadDict = new Dictionary< string, B2Jplayhead >();
+			_playheadList = new List< B2Jplayhead > ();
 			
 			// making a copy of the current object rotations and orientations
 			_world2local = new Dictionary < Transform, Matrix4x4 >();
@@ -65,9 +72,20 @@ namespace B2J {
 			_interpolate = true;
 			_normaliseRotationWeight = true;
 			_defaultLoop = B2Jloop.B2JLOOP_NORMAL;
-			
+
+			verbose = true;
+			forceSync = true;
+
+		}
+
+		public void Quiet() {
+			verbose = false;
 		}
 		
+		public void Verbose() {
+			verbose = true;
+		}
+
 		protected void init() {
 			
 			Transform[] all_transforms = GetComponentsInChildren<Transform>();
@@ -93,15 +111,21 @@ namespace B2J {
 		public void loadMapping( TextAsset asset ) {
 			B2Jmap map = new B2Jmap();
 			if ( map.load( asset, this ) ) {
-				if ( _b2jMaps.ContainsKey( map.model ) ) {
-					Debug.Log( "A map with the same model as already been loaded! It will be overwritten by the current one: " + map.name );
+				if ( _maps.ContainsKey( map.model ) && verbose ) {
+					Debug.LogError( "A map with the same model as already been loaded! It will be overwritten by the current one: " + map.name );
 				}
-				_b2jMaps.Add( map.model, map );
+				_maps.Add( map.model, map );
+				// creating related blender
+				B2JmapBlend mapblend = new B2JmapBlend();
+				mapblend.map = map;
+				_mapblendList.Add( mapblend );
+				_mapblendByModel.Add( map.model, mapblend );
+				forceSync = true;
 			}
 		}
 		
 		public B2Jplayhead getPlayhead( string name ) {
-			foreach( B2Jplayhead ph in _b2jPlayheadList )
+			foreach( B2Jplayhead ph in _playheadList )
 				if ( ph.Name == name )
 					return ph;
 			return null;
@@ -113,11 +137,82 @@ namespace B2J {
 		
 		private void Synchronise() {
 			if ( B2Jserver != null ) {
-				B2Jserver.syncPlayheads( _b2jPlayheadList, _b2jPlayheads, _defaultLoop );
+
+				bool smthchanged = B2Jserver.syncPlayheads( _playheadList, _playheadDict, _defaultLoop );
+
+				if ( smthchanged || forceSync ) {
+
+					// first, checking if there some playheads have been destroyed
+					foreach( B2JmapBlend mb in _mapblendList ) {
+
+						foreach( B2Jplayhead mb_ph in mb.playheads ) {
+
+							bool found = false;
+
+							foreach ( B2Jplayhead ph in _playheadList ) {
+								if ( ph == mb_ph ) {
+									found = true;
+									break;
+								}
+							}
+
+							if ( !found ) {
+
+								mb.playheads.Remove( mb_ph );
+
+							}
+
+						}
+
+					}
+
+					// then checking new ones
+					foreach ( B2Jplayhead ph in _playheadList ) {
+					
+						if ( _mapblendByModel.ContainsKey( ph.Model ) ) {
+
+							B2JmapBlend mb = _mapblendByModel[ ph.Model ];
+
+							bool found = false;
+
+							foreach( B2Jplayhead mb_ph in mb.playheads ) {
+							
+								if ( ph == mb_ph ) {
+									found = true;
+									break;
+								}
+							
+							}
+
+							if ( !found ) {
+
+								mb.playheads.Add( ph );
+								if ( verbose )
+									Debug.Log ( "new map blend added " + ph.Model + " >> " + ph.Name );
+
+							}
+
+						} else {
+
+							Debug.LogError( "the player have no map for this model! '" + ph.Model + "'" );
+
+						}
+					
+					}
+					
+					if ( verbose )
+						Debug.Log ( "One or several playheads have been added or removed from the list!" );
+					// map blend have to be checked!
+
+					forceSync = false;
+
+				}
+
 				// all playheads are now ok
-				foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+				foreach( B2Jplayhead ph in _playheadList ) {
 					ph.update( _interpolate );
 				}
+
 			}
 		}
 		
@@ -138,8 +233,8 @@ namespace B2J {
 			// a transform can be influenced by several playheads
 			// and in each MAP, a transform can be influenced by several b2j bones
 			if ( _normaliseRotationWeight ) {
-				foreach( B2Jplayhead ph in _b2jPlayheadList ) {
-					B2Jmap map = _b2jMaps[ ph.Model ];
+				foreach( B2Jplayhead ph in _playheadList ) {
+					B2Jmap map = _maps[ ph.Model ];
 					// no map found, no need to go further!
 					if ( map == null ) {
 						continue;
@@ -188,13 +283,13 @@ namespace B2J {
 			//
 			//			}
 			
-			foreach( B2Jplayhead ph in _b2jPlayheadList ) {
+			foreach( B2Jplayhead ph in _playheadList ) {
 				
 				if ( ph.Weight == 0 ) {
 					continue;
 				}
 				// searching the map for this model
-				B2Jmap map = _b2jMaps[ ph.Model ];
+				B2Jmap map = _maps[ ph.Model ];
 				// no map found, no need to go further!
 				if ( map == null ) {
 					continue;

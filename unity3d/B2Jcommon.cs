@@ -8,7 +8,7 @@ using MiniJSON;
 
 namespace B2J {
 
-	// SERVER SIDE OBJECTS
+	// RECORDS SPECIFIC OBJECTS
 
 	public class B2Jgroup {
 		public string name;
@@ -53,6 +53,19 @@ namespace B2J {
 		}
 	}
 
+	public class B2Jhierarchy {
+		public string name;
+		public Vector3 head;
+		public Vector3 tail;
+		public List< B2Jhierarchy > children;
+	}
+
+	public enum B2Jloop {
+		B2JLOOP_NONE = 0,
+		B2JLOOP_NORMAL = 1,
+		B2JLOOP_PALINDROME = 2
+	}
+	
 	public class B2Jrecord {
 		public string type;
 		public float version;
@@ -70,20 +83,31 @@ namespace B2J {
 		
 	}
 
-	public class B2Jhierarchy {
-		public string name;
-		public Vector3 head;
-		public Vector3 tail;
-		public List< B2Jhierarchy > children;
+	// PLAYER SPECIFIC OBJECTS
+
+	// this object is used to holds the result
+	// of the fusion of all the records of the same MODEL (and thus B2Jmap)
+	public class B2JmapBlend {
+
+		public List< B2Jplayhead > playheads;
+		public Dictionary< Transform, Quaternion > allQuaternions;
+		public Dictionary< Transform, Vector3 > allTranslations;
+		public Dictionary< Transform, Vector3 > allScales;
+		public B2Jmap map;
+
+		public B2JmapBlend() {
+
+			playheads = new List< B2Jplayhead > ();
+			allQuaternions = new Dictionary<Transform, Quaternion> ();
+			allTranslations = new Dictionary< Transform, Vector3 > ();
+			allScales = new Dictionary< Transform, Vector3 > ();
+			map = null;
+		}
+
+
 	}
 
-	public enum B2Jloop {
-		B2JLOOP_NONE = 0,
-		B2JLOOP_NORMAL = 1,
-		B2JLOOP_PALINDROME = 2
-	}
-
-	// MAP OBJECTS
+	// MAP SPECIFIC OBJECTS
 
 	public class B2JtransformList {
 		public List< Transform > transforms;

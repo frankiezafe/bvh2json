@@ -21,6 +21,8 @@ public class B2Jvalidator : B2JgenericPlayer {
 		LineRenderer[] all_linerenders = GetComponentsInChildren<LineRenderer>();
 		liner = all_linerenders[ 0 ];
 
+		Quiet();
+
 		init();
 
 		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
@@ -32,7 +34,7 @@ public class B2Jvalidator : B2JgenericPlayer {
 
 		ph = getPlayhead( "thomas_se_leve_02" );
 		rec = ph.Record;
-		m = _b2jMaps["bvh_numediart"];
+		m = _maps["bvh_numediart"];
 		// z axis should point in the bone direction
 		defaultRot = new Dictionary < Transform, Quaternion >();
 		foreach ( KeyValuePair< int, B2JtransformList > pair in m.transformListById ) {

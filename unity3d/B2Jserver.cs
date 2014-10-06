@@ -17,11 +17,22 @@ namespace B2J {
 
 		private bool newRecord;
 
+		private bool verbose;
+
 		public B2Jserver() {
 			_loadedpath = new List<string> ();
 			_loadingpath = new List<string> ();
 			_records = new List<B2Jrecord> ();
 			newRecord = false;
+			verbose = true;
+		}
+
+		public void Quiet() {
+			verbose = false;
+		}
+
+		public void Verbose() {
+			verbose = true;
 		}
 
 		public void Start() {}
@@ -34,7 +45,8 @@ namespace B2J {
 
 		public void load( string path ) {
 			if ( _loadedpath.Contains ( path ) ) {
-				Debug.Log ( "'" + path + "' already loaded" );
+				if ( verbose )
+					Debug.Log ( "'" + path + "' already loaded" );
 				return;
 			}
 			addNewRecord( B2Jparser.Instance.load ( path ), path );
@@ -45,20 +57,24 @@ namespace B2J {
 				_loadedpath.Add( path );
 				_records.Add( rec );
 				newRecord = true;
-				Debug.Log ( "new record added: " + rec.name + ", " + _records.Count + " record(s) loaded" );
+				if ( verbose )
+					Debug.Log ( "new record added: " + rec.name + ", " + _records.Count + " record(s) loaded" );
 			}
 		}
 
-		public void syncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
+		public bool syncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
+
+			bool modified = false;
 
 			if ( !newRecord && phs.Count == _records.Count )
-				return;
+				return modified;
 
 			// is there playheads not registered anymore?
 			foreach ( B2Jplayhead ph in phs ) {
 				if ( ! _records.Contains( ph.Record ) ) {
 					phs.Remove( ph );
 					dict.Remove( ph.Name );
+					modified = true;
 				}
 			}
 
@@ -74,8 +90,11 @@ namespace B2J {
 				if ( !found ) {
 					B2Jplayhead ph = createNewPlayhead( rec, phs, loop );
 					dict.Add( ph.Name, ph );
+					modified = true;
 				}
 			}
+
+			return modified;
 
 			newRecord = false;
 		
