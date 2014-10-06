@@ -15,10 +15,13 @@ namespace B2J {
 		private List<string> _loadingpath;
 		private List<B2Jrecord> _records;
 
+		private bool newRecord;
+
 		public B2Jserver() {
 			_loadedpath = new List<string> ();
 			_loadingpath = new List<string> ();
 			_records = new List<B2Jrecord> ();
+			newRecord = false;
 		}
 
 		public void Start() {}
@@ -41,12 +44,16 @@ namespace B2J {
 			if ( rec != null ) {
 				_loadedpath.Add( path );
 				_records.Add( rec );
+				newRecord = true;
 				Debug.Log ( "new record added: " + rec.name + ", " + _records.Count + " record(s) loaded" );
 			}
 		}
 
 		public void syncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
-		
+
+			if ( !newRecord && phs.Count == _records.Count )
+				return;
+
 			// is there playheads not registered anymore?
 			foreach ( B2Jplayhead ph in phs ) {
 				if ( ! _records.Contains( ph.Record ) ) {
@@ -69,6 +76,8 @@ namespace B2J {
 					dict.Add( ph.Name, ph );
 				}
 			}
+
+			newRecord = false;
 		
 		}
 
