@@ -12,8 +12,8 @@ public class B2Jplayer : B2JgenericPlayer {
 	public TextAsset Map_numediart;
 	private int correctionCount;
 
-	public bool normalise_weights;
-	private bool last_normalise_weights;
+	public bool normalise_rotations;
+	private bool last_normalise_rotations;
 
 	public bool interpolation;
 	private bool last_interpolation;
@@ -29,27 +29,26 @@ public class B2Jplayer : B2JgenericPlayer {
 	// Use this for initialization
 	void Start () {
 
-		_defaultLoop = B2Jloop.B2JLOOP_PALINDROME;
-		_interpolate = true;
-		_normaliseRotationWeight = false;
+		defaultLoop = B2Jloop.B2JLOOP_PALINDROME;
+		interpolate = true;
 
-		normalise_weights = _normaliseRotationWeight;
-		last_normalise_weights = normalise_weights;
+		normalise_rotations = rotationNormalise;
+		last_normalise_rotations = normalise_rotations;
 
-		interpolation = _interpolate;
+		interpolation = interpolate;
 		last_interpolation = interpolation;
 
 		init();
 
-		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
+		LoadMapping( Map_numediart ); // mapping for model "bvh_numediart"
 
 		if (B2Jserver != null) {
-			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
+			B2Jserver.Load( "bvh2json/data/thomas_se_leve_02" );
 //			B2Jserver.load( "bvh2json/data/tensions_01" );
-			B2Jserver.load( "bvh2json/data/capoiera" );
+			B2Jserver.Load( "bvh2json/data/capoiera" );
 		}
 
-		sync();
+		Process();
 
 		percent = 0;
 		lastPercent = percent;
@@ -57,56 +56,56 @@ public class B2Jplayer : B2JgenericPlayer {
 		speed = 1;
 		lastSpeed = speed;
 
-		foreach ( B2Jplayhead ph in _playheadList ) {
+		foreach ( B2Jplayhead ph in playheadList ) {
 			ph.Percent = percent;
 			ph.Speed = speed;
 		}
 
-		for( int i = 0; i < _playheadList.Count; i++ ) {
+		for( int i = 0; i < playheadList.Count; i++ ) {
 			if ( i == 0 ) {
-				_playheadList[ i ].Weight = 1;
+				playheadList[ i ].Weight = 1;
 			} else {
-				_playheadList[ i ].Weight = 0;
+				playheadList[ i ].Weight = 0;
 			}
 			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
-			ui.Mocap = _playheadList[ i ].Name;
-			ui.playhead = _playheadList[ i ];
+			ui.Mocap = playheadList[ i ].Name;
+			ui.playhead = playheadList[ i ];
 		}
 
 	}
 
 	void Update() {
 
-		sync();
+		Process();
 
-		if ( normalise_weights != last_normalise_weights ) {
-			_normaliseRotationWeight = normalise_weights;
-			last_normalise_weights = normalise_weights;
+		if ( normalise_rotations != last_normalise_rotations ) {
+			rotationNormalise = normalise_rotations;
+			last_normalise_rotations = normalise_rotations;
 		}
 
 		if ( interpolation != last_interpolation ) {
-			_interpolate = interpolation;
+			interpolate = interpolation;
 			last_interpolation = interpolation;
 		}
 
 		if ( lastPercent != percent ) {
-			foreach ( B2Jplayhead ph in _playheadList ) {
+			foreach ( B2Jplayhead ph in playheadList ) {
 				ph.Percent = percent;
 			}
 			lastPercent = percent;
 		}
 		 
 		if ( lastSpeed != speed ) {
-			foreach ( B2Jplayhead ph in _playheadList ) {
+			foreach ( B2Jplayhead ph in playheadList ) {
 				ph.Speed = speed;
 			}
 			lastSpeed = speed;
 		}
 
-		render();
+		Render();
 
 		// and applying on the model
-		foreach ( KeyValuePair< Transform, Quaternion > pair in _updatedQuaternions ) {
+		foreach ( KeyValuePair< Transform, Quaternion > pair in updatedQuaternions ) {
 
 			Transform t = pair.Key;
 			Quaternion q = pair.Value;

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using MiniJSON;
 
 namespace B2J {
-	
+
 	public class B2Jmap {
 		
 		public string model;
@@ -22,16 +22,17 @@ namespace B2J {
 		public bool enable_scales = true;
 		
 		public B2JmapLocalValues locals;
-		public float smooth;
 		public B2JsmoothMethod smooth_mehod;
 		
 		public B2Jmap() {
+
 			uniqueTransforms = new List< Transform > ();
 			transformListByName = new Dictionary< string, B2JtransformList > ();
 			transformListById = new Dictionary< int, B2JtransformList > ();
 			locals = new B2JmapLocalValues ();
 //			Debug.Log ("public B2Jmap :: TEMPORARY smooth_mehod HARDCODING, TO EXPOSE IN JSON");
-			smooth_mehod = B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE;
+			smooth_mehod = B2JsmoothMethod.B2JSMOOTH_NONE;
+
 		}
 		
 		// pass the text assets containung the mapping and the game object (an avatar...) where the bones are
@@ -69,8 +70,12 @@ namespace B2J {
 			if ( es == 0 ) {
 				enable_scales = false;
 			}
-			
-			smooth = float.Parse( "" + data[ "smooth" ] );
+
+			smooth_mehod = B2JsmoothMethod.B2JSMOOTH_NONE;
+			string tmpsm = "" + data[ "smooth_method" ];
+			if ( tmpsm == "ACCUMULATION_OF_DIFFERENCE" ) {
+				smooth_mehod = B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE;
+			}
 			
 			IList bvh_bones = ( IList ) data[ "list" ];
 			Transform[] all_transforms = obj.GetComponentsInChildren < Transform > ();

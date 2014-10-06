@@ -11,33 +11,33 @@ namespace B2J {
 	public class B2JgenericPlayer : MonoBehaviour {
 		
 		public B2Jserver B2Jserver;
-		protected Dictionary< string, B2Jmap > _maps;
-		protected Dictionary< string, B2JmapBlend > _mapblendByModel; // preprocessing of the mocap blend happens here
-		protected List< B2JmapBlend > _mapblendList;
-		protected Dictionary< string, B2Jplayhead > _playheadDict;
-		protected List< B2Jplayhead > _playheadList;
+		protected Dictionary< string, B2Jmap > maps;
+		protected Dictionary< string, B2Jblender > blenderByModel; // preprocessing of the mocap blend happens here
+		protected List< B2Jblender > blenderList;
+		protected Dictionary< string, B2Jplayhead > playheadDict;
+		protected List< B2Jplayhead > playheadList;
 		
-		protected Dictionary < Transform, Matrix4x4 > _world2local;
-		protected Dictionary < string, Transform > _armature;
-		protected Dictionary< Transform, Quaternion > _initialQuaternions;
-		protected Dictionary< Transform, Vector3 > _initialTranslations;
-		protected Dictionary< Transform, Vector3 > _initialScales;
+		protected Dictionary < Transform, Matrix4x4 > world2local;
+		protected Dictionary < string, Transform > armature;
+		protected Dictionary< Transform, Quaternion > initialQuaternions;
+		protected Dictionary< Transform, Vector3 > initialTranslations;
+		protected Dictionary< Transform, Vector3 > initialScales;
 		
-		protected Dictionary< Transform, Quaternion > _updatedQuaternions;
-		protected Dictionary< Transform, Vector3 > _updatedTranslations;
-		protected Dictionary< Transform, Vector3 > _updatedScales;
+		protected Dictionary< Transform, Quaternion > updatedQuaternions;
+		protected Dictionary< Transform, Vector3 > updatedTranslations;
+		protected Dictionary< Transform, Vector3 > updatedScales;
 		
-		protected Dictionary< Transform, Quaternion > _allQuaternions;
-		protected Dictionary< Transform, Vector3 > _allTranslations;
-		protected Dictionary< Transform, Vector3 > _allScales;
+		protected Dictionary< Transform, Quaternion > allQuaternions;
+		protected Dictionary< Transform, Vector3 > allTranslations;
+		protected Dictionary< Transform, Vector3 > allScales;
 		
-		protected Dictionary< Transform, float > _weights;
+		protected Dictionary< Transform, float > weights;
 		
-		protected bool _interpolate;
-		protected bool _normaliseRotationWeight;
-		protected bool _normaliseTranslationWeight;
-		protected bool _normaliseScaleWeight;
-		protected B2Jloop _defaultLoop;
+		protected bool interpolate;
+		protected bool rotationNormalise;
+		protected bool translationNormalise;
+		protected bool scaleNormalise;
+		protected B2Jloop defaultLoop;
 
 		protected bool verbose;
 		private bool forceSync;
@@ -45,33 +45,36 @@ namespace B2J {
 		public B2JgenericPlayer() {
 			
 			B2Jserver = null;
-			_maps = new Dictionary< string, B2Jmap >();
-			_mapblendByModel = new Dictionary< string, B2JmapBlend >();
-			_mapblendList = new List< B2JmapBlend >();
-			_playheadDict = new Dictionary< string, B2Jplayhead >();
-			_playheadList = new List< B2Jplayhead > ();
+			maps = new Dictionary< string, B2Jmap >();
+			blenderByModel = new Dictionary< string, B2Jblender >();
+			blenderList = new List< B2Jblender >();
+			playheadDict = new Dictionary< string, B2Jplayhead >();
+			playheadList = new List< B2Jplayhead > ();
 			
 			// making a copy of the current object rotations and orientations
-			_world2local = new Dictionary < Transform, Matrix4x4 >();
-			_armature = new Dictionary < string, Transform > ();
+			world2local = new Dictionary < Transform, Matrix4x4 >();
+			armature = new Dictionary < string, Transform > ();
 			
-			_initialQuaternions = new Dictionary< Transform, Quaternion > ();
-			_initialTranslations = new Dictionary< Transform, Vector3 > ();
-			_initialScales = new Dictionary< Transform, Vector3 > ();
+			initialQuaternions = new Dictionary< Transform, Quaternion > ();
+			initialTranslations = new Dictionary< Transform, Vector3 > ();
+			initialScales = new Dictionary< Transform, Vector3 > ();
 			
-			_allQuaternions = new Dictionary< Transform, Quaternion > ();
-			_allTranslations = new Dictionary< Transform, Vector3 > ();
-			_allScales = new Dictionary< Transform, Vector3 > ();
+			allQuaternions = new Dictionary< Transform, Quaternion > ();
+			allTranslations = new Dictionary< Transform, Vector3 > ();
+			allScales = new Dictionary< Transform, Vector3 > ();
 			
-			_updatedQuaternions = new Dictionary< Transform, Quaternion >();
-			_updatedTranslations = new Dictionary< Transform, Vector3 >();
-			_updatedScales = new Dictionary< Transform, Vector3 >();
+			updatedQuaternions = new Dictionary< Transform, Quaternion >();
+			updatedTranslations = new Dictionary< Transform, Vector3 >();
+			updatedScales = new Dictionary< Transform, Vector3 >();
 			
-			_weights = new Dictionary< Transform, float > ();
+			weights = new Dictionary< Transform, float > ();
 			
-			_interpolate = true;
-			_normaliseRotationWeight = true;
-			_defaultLoop = B2Jloop.B2JLOOP_NORMAL;
+			interpolate = true;
+			rotationNormalise = true;
+			translationNormalise = true;
+			scaleNormalise = true;
+
+			defaultLoop = B2Jloop.B2JLOOP_NORMAL;
 
 			verbose = true;
 			forceSync = true;
@@ -91,65 +94,79 @@ namespace B2J {
 			Transform[] all_transforms = GetComponentsInChildren<Transform>();
 			foreach( Transform t in all_transforms ) {
 				
-				_armature.Add( t.name, t );
-				_world2local.Add( t, t.worldToLocalMatrix );
+				armature.Add( t.name, t );
+				world2local.Add( t, t.worldToLocalMatrix );
 				
-				_initialQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
-				_initialTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
-				_initialScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+				initialQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
+				initialTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
+				initialScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
 				
-				_allQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
-				_allTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
-				_allScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+				allQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
+				allTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
+				allScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
 				
-				_weights.Add( t, 1 );
+				weights.Add( t, 1 );
 				
 			}
 			
 		}
 		
-		public void loadMapping( TextAsset asset ) {
+		public void LoadMapping( TextAsset asset ) {
 			B2Jmap map = new B2Jmap();
 			if ( map.load( asset, this ) ) {
-				if ( _maps.ContainsKey( map.model ) && verbose ) {
+				if ( maps.ContainsKey( map.model ) && verbose ) {
 					Debug.LogError( "A map with the same model as already been loaded! It will be overwritten by the current one: " + map.name );
 				}
-				_maps.Add( map.model, map );
+				maps.Add( map.model, map );
 				// creating related blender
-				B2JmapBlend mapblend = new B2JmapBlend();
-				mapblend.map = map;
-				_mapblendList.Add( mapblend );
-				_mapblendByModel.Add( map.model, mapblend );
+				B2Jblender mapblend = new B2Jblender( 
+                     map,
+				     world2local,
+                     initialQuaternions,
+                     initialTranslations,
+                     initialScales
+                     );
+
+				blenderList.Add( mapblend  );
+				blenderByModel.Add( map.model, mapblend );
 				forceSync = true;
 			}
 		}
 		
-		public B2Jplayhead getPlayhead( string name ) {
-			foreach( B2Jplayhead ph in _playheadList )
+		public B2Jplayhead GetPlayhead( string name ) {
+			foreach( B2Jplayhead ph in playheadList )
 				if ( ph.Name == name )
 					return ph;
 			return null;
 		}
 		
-		protected void sync() {
-			Synchronise();
+		protected void Process() {
+
+			synchronise();
+			
+			// all playheads are now ok
+			foreach( B2Jplayhead ph in playheadList ) {
+				ph.update( interpolate );
+			}
+
 		}
 		
-		private void Synchronise() {
+		private void synchronise() {
+
 			if ( B2Jserver != null ) {
 
-				bool smthchanged = B2Jserver.syncPlayheads( _playheadList, _playheadDict, _defaultLoop );
+				bool smthchanged = B2Jserver.SyncPlayheads( playheadList, playheadDict, defaultLoop );
 
 				if ( smthchanged || forceSync ) {
 
 					// first, checking if there some playheads have been destroyed
-					foreach( B2JmapBlend mb in _mapblendList ) {
+					foreach( B2Jblender mb in blenderList ) {
 
 						foreach( B2Jplayhead mb_ph in mb.playheads ) {
 
 							bool found = false;
 
-							foreach ( B2Jplayhead ph in _playheadList ) {
+							foreach ( B2Jplayhead ph in playheadList ) {
 								if ( ph == mb_ph ) {
 									found = true;
 									break;
@@ -167,11 +184,11 @@ namespace B2J {
 					}
 
 					// then checking new ones
-					foreach ( B2Jplayhead ph in _playheadList ) {
+					foreach ( B2Jplayhead ph in playheadList ) {
 					
-						if ( _mapblendByModel.ContainsKey( ph.Model ) ) {
+						if ( blenderByModel.ContainsKey( ph.Model ) ) {
 
-							B2JmapBlend mb = _mapblendByModel[ ph.Model ];
+							B2Jblender mb = blenderByModel[ ph.Model ];
 
 							bool found = false;
 
@@ -208,16 +225,82 @@ namespace B2J {
 
 				}
 
-				// all playheads are now ok
-				foreach( B2Jplayhead ph in _playheadList ) {
-					ph.update( _interpolate );
+			}
+
+		}
+		
+		protected void Render() {
+			
+			// updating all the blenders
+			float blenderWeight = 0;
+			foreach (B2Jblender bb in blenderList) {
+				bb.update( rotationNormalise, translationNormalise, scaleNormalise );
+				blenderWeight += bb.getWeight();
+			}
+
+			// storing all updated transforms in a temporary dict
+			if ( !rotationNormalise )
+				updatedQuaternions.Clear();
+
+			if ( !translationNormalise )
+				updatedTranslations.Clear();
+
+			if ( !scaleNormalise )
+				updatedScales.Clear();
+
+			// for the moment, just one blender is considered
+			foreach (B2Jblender bb in blenderList) {
+			
+				float bw = 1;
+				if ( rotationNormalise || translationNormalise || scaleNormalise ) {
+					if ( blenderWeight > 1 ) {
+						bw = bb.getWeight() / blenderWeight;
+					} else {
+						bw = bb.getWeight();
+					}
+				}
+
+				Dictionary< Transform, Quaternion > qts = bb.getQuaternions();
+				foreach( KeyValuePair< Transform, Quaternion > pair in qts ) {
+					if ( !updatedQuaternions.ContainsKey( pair.Key ) ) {
+						updatedQuaternions.Add( pair.Key, Quaternion.identity );
+					}
+					if ( rotationNormalise ) {
+						updatedQuaternions[ pair.Key ] = Quaternion.Slerp( updatedQuaternions[ pair.Key ], pair.Value, bw );
+					} else {
+						updatedQuaternions[ pair.Key ] *= pair.Value;
+					}
+				}
+
+				Dictionary< Transform, Vector3 > tls = bb.getTranslations();
+				foreach( KeyValuePair< Transform, Vector3 > pair in tls ) {
+					if ( !updatedTranslations.ContainsKey( pair.Key ) ) {
+						updatedTranslations.Add( pair.Key, Vector3.zero );
+					}
+					if ( translationNormalise ) {
+						updatedTranslations[ pair.Key ] = B2Jutils.VectorSlerp( updatedTranslations[ pair.Key ], pair.Value, bw );
+					} else {
+						updatedTranslations[ pair.Key ] += pair.Value;
+					}
+				}
+				
+				Dictionary< Transform, Vector3 > scs = bb.getScales();
+				foreach( KeyValuePair< Transform, Vector3 > pair in scs ) {
+					if ( !updatedScales.ContainsKey( pair.Key ) ) {
+						updatedScales.Add( pair.Key, pair.Value );
+					}
+					if ( scaleNormalise ) {
+						updatedScales[ pair.Key ] = B2Jutils.VectorSlerp( updatedScales[ pair.Key ], pair.Value, bw );
+					} else {
+						updatedScales[ pair.Key ] += pair.Value;
+					}
 				}
 
 			}
-		}
-		
-		protected void render() {
-			
+
+			return;
+
+
 			//			Debug.LogError ( "build smooth method on this basis: " +
 			//								"each map define its own smooth, meaning smooth must be rendererd using _allQuaternions during main loop. ");
 			
@@ -225,22 +308,22 @@ namespace B2J {
 			float totalWeight = 0;
 			
 			// reseting all weights
-			foreach ( KeyValuePair< string, Transform > pair in _armature ) {
-				_weights[ pair.Value ] = 1.0f;
+			foreach ( KeyValuePair< string, Transform > pair in armature ) {
+				weights[ pair.Value ] = 1.0f;
 			}
 			
 			// retrieval of total weight per bone
 			// a transform can be influenced by several playheads
 			// and in each MAP, a transform can be influenced by several b2j bones
-			if ( _normaliseRotationWeight ) {
-				foreach( B2Jplayhead ph in _playheadList ) {
-					B2Jmap map = _maps[ ph.Model ];
+			if ( rotationNormalise ) {
+				foreach( B2Jplayhead ph in playheadList ) {
+					B2Jmap map = maps[ ph.Model ];
 					// no map found, no need to go further!
 					if ( map == null ) {
 						continue;
 					}
 					foreach( Transform t in map.uniqueTransforms ) {
-						_weights[ t ] += ph.Weight;
+						weights[ t ] += ph.Weight;
 					}
 				}
 			} else {
@@ -248,9 +331,9 @@ namespace B2J {
 			}
 			
 			// storing all updated transforms in a temporary dict
-			_updatedQuaternions.Clear();
-			_updatedTranslations.Clear();
-			_updatedScales.Clear();
+			updatedQuaternions.Clear();
+			updatedTranslations.Clear();
+			updatedScales.Clear();
 			
 			//Debug.LogError( "FINISH THIS!" );
 			//			// first: collecting new orientations, translations & scales per map
@@ -283,19 +366,19 @@ namespace B2J {
 			//
 			//			}
 			
-			foreach( B2Jplayhead ph in _playheadList ) {
+			foreach( B2Jplayhead ph in playheadList ) {
 				
 				if ( ph.Weight == 0 ) {
 					continue;
 				}
 				// searching the map for this model
-				B2Jmap map = _maps[ ph.Model ];
+				B2Jmap map = maps[ ph.Model ];
 				// no map found, no need to go further!
 				if ( map == null ) {
 					continue;
 				}
 				
-				float smooth = map.smooth;
+//				float smooth = map.smooth;
 				
 				// no need to go over all bones, just the ones of the mapping
 				foreach ( KeyValuePair< int, B2JtransformList > pair in map.transformListById ) {
@@ -307,8 +390,8 @@ namespace B2J {
 						
 						Transform t = tlist.transforms[ i ];
 						float locw = tlist.weights[ i ];
-						if ( _normaliseRotationWeight ) {
-							totalWeight = _weights[ t ];
+						if ( rotationNormalise ) {
+							totalWeight = weights[ t ];
 							if ( totalWeight == 0 ) {
 								continue;
 							} else if ( totalWeight < 1 ) {
@@ -321,43 +404,43 @@ namespace B2J {
 						float ratio = locw * ph.Weight * totalWeight; // calcul du weight absolu
 						
 						if ( map.enable_rotations ) {
-							if ( !_updatedQuaternions.ContainsKey( t ) ) {
+							if ( !updatedQuaternions.ContainsKey( t ) ) {
 								// _updatedQuaternions.Add( t, Quaternion.identity );
 								Quaternion qbase = new Quaternion(
-									_initialQuaternions[t].x,
-									_initialQuaternions[t].y,
-									_initialQuaternions[t].z,
-									_initialQuaternions[t].w ); 
-								_updatedQuaternions.Add( t, qbase );
+									initialQuaternions[t].x,
+									initialQuaternions[t].y,
+									initialQuaternions[t].z,
+									initialQuaternions[t].w ); 
+								updatedQuaternions.Add( t, qbase );
 							}
 							Quaternion newrot = ph.Rotations[ bid ];
 							// depending on the record model, quaternion is processed differently
 							if ( ph.Model == "bvh_numediart" ) {
 								Matrix4x4 mat = new Matrix4x4();
 								mat.SetTRS( Vector3.zero, newrot, Vector3.one );
-								Matrix4x4 tmat = _world2local[ t ];
+								Matrix4x4 tmat = world2local[ t ];
 								mat = tmat* mat * tmat.inverse;
 								newrot = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
 							} else {
 								Debug.LogError( "enable_rotations :: UNKNOWN B2J MODEL!!! : " + ph.Model );
 							}
-							if ( _normaliseRotationWeight ) {
-								_updatedQuaternions[ t ] = Quaternion.Slerp(
-									_updatedQuaternions[ t ],
-									_initialQuaternions[t] * newrot,
+							if ( rotationNormalise ) {
+								updatedQuaternions[ t ] = Quaternion.Slerp(
+									updatedQuaternions[ t ],
+									initialQuaternions[t] * newrot,
 									ratio
 									);
 							} else {
 								// accumulation of rotations, until everything explodes...
 								Quaternion tmp = Quaternion.Slerp( Quaternion.identity, newrot, ratio );
-								_updatedQuaternions[ t ] *= tmp;
+								updatedQuaternions[ t ] *= tmp;
 							}
 						}
 						
 						if ( map.enable_translations ) {
 							
-							if ( !_updatedTranslations.ContainsKey( t ) ) {
-								_updatedTranslations.Add( t, Vector3.zero );
+							if ( !updatedTranslations.ContainsKey( t ) ) {
+								updatedTranslations.Add( t, Vector3.zero );
 							}
 							
 							Vector3 newpos = ph.Positions[ bid ];
@@ -367,13 +450,13 @@ namespace B2J {
 								Debug.LogError( "enable_translations :: UNKNOWN B2J MODEL!!! : " + ph.Model );
 							}
 							
-							if ( _normaliseTranslationWeight ) {
+							if ( translationNormalise ) {
 								newpos *= ratio;
 							} else {
-								_updatedTranslations[ t ] += newpos;
+								updatedTranslations[ t ] += newpos;
 							}
 							
-							_updatedTranslations[ t ] += newpos;
+							updatedTranslations[ t ] += newpos;
 							
 						}
 						
