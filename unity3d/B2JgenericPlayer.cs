@@ -23,13 +23,13 @@ namespace B2J {
 		protected Dictionary< Transform, Vector3 > initialTranslations;
 		protected Dictionary< Transform, Vector3 > initialScales;
 		
-//		protected Dictionary< Transform, Quaternion > updatedQuaternions;
-//		protected Dictionary< Transform, Vector3 > updatedTranslations;
-//		protected Dictionary< Transform, Vector3 > updatedScales;
+		protected Dictionary< Transform, Quaternion > updatedQuaternions;
+		protected Dictionary< Transform, Vector3 > updatedTranslations;
+		protected Dictionary< Transform, Vector3 > updatedScales;
 		
-		protected Dictionary< Transform, Quaternion > quaternions;
-		protected Dictionary< Transform, Vector3 > translations;
-		protected Dictionary< Transform, Vector3 > scales;
+		protected Dictionary< Transform, Quaternion > allQuaternions;
+		protected Dictionary< Transform, Vector3 > allTranslations;
+		protected Dictionary< Transform, Vector3 > allScales;
 		
 		protected Dictionary< Transform, float > weights;
 		
@@ -59,13 +59,13 @@ namespace B2J {
 			initialTranslations = new Dictionary< Transform, Vector3 > ();
 			initialScales = new Dictionary< Transform, Vector3 > ();
 			
-			quaternions = new Dictionary< Transform, Quaternion > ();
-			translations = new Dictionary< Transform, Vector3 > ();
-			scales = new Dictionary< Transform, Vector3 > ();
+			allQuaternions = new Dictionary< Transform, Quaternion > ();
+			allTranslations = new Dictionary< Transform, Vector3 > ();
+			allScales = new Dictionary< Transform, Vector3 > ();
 			
-//			updatedQuaternions = new Dictionary< Transform, Quaternion >();
-//			updatedTranslations = new Dictionary< Transform, Vector3 >();
-//			updatedScales = new Dictionary< Transform, Vector3 >();
+			updatedQuaternions = new Dictionary< Transform, Quaternion >();
+			updatedTranslations = new Dictionary< Transform, Vector3 >();
+			updatedScales = new Dictionary< Transform, Vector3 >();
 			
 			weights = new Dictionary< Transform, float > ();
 			
@@ -100,25 +100,15 @@ namespace B2J {
 				initialQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
 				initialTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
 				initialScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
-
-				quaternions.Add( t, Quaternion.identity );
-				translations.Add( t, Vector3.zero );
-				scales.Add( t, Vector3.one );
-
+				
+				allQuaternions.Add( t, new Quaternion( t.localRotation.x, t.localRotation.y, t.localRotation.z, t.localRotation.w ) );
+				allTranslations.Add( t, new Vector3( t.localPosition.x, t.localPosition.y, t.localPosition.z ) );
+				allScales.Add( t, new Vector3( t.localScale.x, t.localScale.y, t.localScale.z ) );
+				
 				weights.Add( t, 1 );
 				
 			}
-
-			reset();
 			
-		}
-
-		public void reset() {
-			foreach( KeyValuePair< string, Transform > pair in armature ) {
-				quaternions[ pair.Value ] = B2Jutils.copy( initialQuaternions[ pair.Value ] );
-				translations[ pair.Value ] = B2Jutils.copy( initialTranslations[ pair.Value ] );
-				scales[ pair.Value ] = B2Jutils.copy( initialScales[ pair.Value ] );
-			}
 		}
 		
 		public void LoadMapping( TextAsset asset ) {
@@ -248,13 +238,15 @@ namespace B2J {
 				blenderWeight += bb.getWeight();
 			}
 
-			// reseting all values to initial
-			reset();
+			// storing all updated transforms in a temporary dict
+			if ( !rotationNormalise )
+				updatedQuaternions.Clear();
 
-//			// storing all updated transforms in a temporary dict
-//			updatedQuaternions.Clear();
-//			updatedTranslations.Clear();
-//			updatedScales.Clear();
+			if ( !translationNormalise )
+				updatedTranslations.Clear();
+
+			if ( !scaleNormalise )
+				updatedScales.Clear();
 
 			// for the moment, just one blender is considered
 			foreach (B2Jblender bb in blenderList) {
@@ -270,28 +262,37 @@ namespace B2J {
 
 				Dictionary< Transform, Quaternion > qts = bb.getQuaternions();
 				foreach( KeyValuePair< Transform, Quaternion > pair in qts ) {
+					if ( !updatedQuaternions.ContainsKey( pair.Key ) ) {
+						updatedQuaternions.Add( pair.Key, Quaternion.identity );
+					}
 					if ( rotationNormalise ) {
-						quaternions[ pair.Key ] = Quaternion.Slerp( quaternions[ pair.Key ], pair.Value, bw );
+						updatedQuaternions[ pair.Key ] = Quaternion.Slerp( updatedQuaternions[ pair.Key ], pair.Value, bw );
 					} else {
-						quaternions[ pair.Key ] *= pair.Value;
+						updatedQuaternions[ pair.Key ] *= pair.Value;
 					}
 				}
 
 				Dictionary< Transform, Vector3 > tls = bb.getTranslations();
 				foreach( KeyValuePair< Transform, Vector3 > pair in tls ) {
+					if ( !updatedTranslations.ContainsKey( pair.Key ) ) {
+						updatedTranslations.Add( pair.Key, Vector3.zero );
+					}
 					if ( translationNormalise ) {
-						translations[ pair.Key ] = B2Jutils.VectorSlerp( translations[ pair.Key ], pair.Value, bw );
+						updatedTranslations[ pair.Key ] = B2Jutils.VectorSlerp( updatedTranslations[ pair.Key ], pair.Value, bw );
 					} else {
-						translations[ pair.Key ] += pair.Value;
+						updatedTranslations[ pair.Key ] += pair.Value;
 					}
 				}
 				
 				Dictionary< Transform, Vector3 > scs = bb.getScales();
 				foreach( KeyValuePair< Transform, Vector3 > pair in scs ) {
+					if ( !updatedScales.ContainsKey( pair.Key ) ) {
+						updatedScales.Add( pair.Key, pair.Value );
+					}
 					if ( scaleNormalise ) {
-						scales[ pair.Key ] = B2Jutils.VectorSlerp( scales[ pair.Key ], pair.Value, bw );
+						updatedScales[ pair.Key ] = B2Jutils.VectorSlerp( updatedScales[ pair.Key ], pair.Value, bw );
 					} else {
-						scales[ pair.Key ] += pair.Value;
+						updatedScales[ pair.Key ] += pair.Value;
 					}
 				}
 
