@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 using System;
 using System.Threading;
@@ -32,7 +32,9 @@ namespace B2J {
 		private float weight;
 
 		// used when map is B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE
-		private float smooth_strength;
+		private float smooth_speed;
+
+		private B2Jmask mask;
 
 		public B2Jblender(
 			B2Jmap map,
@@ -60,10 +62,20 @@ namespace B2J {
 			setMap( map );
 
 			weight = 1;
-			smooth_strength = 1.0f;
+			smooth_speed = 1.0f;
+
+			mask = new B2Jmask( map.uniqueTransforms );
 
 			// blender is loaded ready to go!!
 
+		}
+		
+		public B2Jmask getMask() {
+			return mask;
+		}
+
+		public B2Jmap getMap() {
+			return map;
 		}
 
 		public Dictionary< Transform, Quaternion > getQuaternions() {
@@ -90,12 +102,12 @@ namespace B2J {
 			weight = w;
 		}
 
-		public float getSmoothStrength() {
-			return smooth_strength;
+		public float getSmoothSpeed() {
+			return smooth_speed;
 		}
 
-		public void setSmoothStrength( float s ) {
-			smooth_strength = s;
+		public void setSmoothSpeed( float s ) {
+			smooth_speed = s;
 		}
 
 		public void setSmoothMethod( B2JsmoothMethod m ) {
@@ -132,6 +144,10 @@ namespace B2J {
 			    initialScales == null
 			    ) {
 				Debug.LogError( "This blender is not correctly set!" );
+			}
+
+			if ( mask != null ) {
+				mask.update();
 			}
 
 			// collecting the total playheads weights
@@ -243,19 +259,19 @@ namespace B2J {
 			// new values have been sorted in new* distionnaries
 			// applying smooth depending on map settings
 
-			if ( map.smooth_mehod == B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE && smooth_strength < 1 ) {
+			if ( map.smooth_mehod == B2JsmoothMethod.B2JSMOOTH_ACCUMULATION_OF_DIFFERENCE && smooth_speed < 1 ) {
 			
 				foreach ( KeyValuePair< Transform, Quaternion > pair in newQuaternions ) {
 					Quaternion q = quaternions[ pair.Key ];
-					quaternions[ pair.Key ] = Quaternion.Slerp( q, pair.Value, smooth_strength );
+					quaternions[ pair.Key ] = Quaternion.Slerp( q, pair.Value, smooth_speed );
 				}
 				foreach ( KeyValuePair< Transform, Vector3 > pair in newTranslations ) {
 					Vector3 v = translations[ pair.Key ];
-					translations[ pair.Key ] = B2Jutils.VectorSlerp( v, pair.Value, smooth_strength );
+					translations[ pair.Key ] = B2Jutils.VectorSlerp( v, pair.Value, smooth_speed );
 				}
 				foreach ( KeyValuePair< Transform, Vector3 > pair in newScales ) {
 					Vector3 v = scales[ pair.Key ];
-					scales[ pair.Key ] = B2Jutils.VectorSlerp( v, pair.Value, smooth_strength );
+					scales[ pair.Key ] = B2Jutils.VectorSlerp( v, pair.Value, smooth_speed );
 				}
 			
 			// by default: simple copy of new values in dictionary

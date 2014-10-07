@@ -25,7 +25,9 @@ namespace B2J {
 		private float _cueIn;
 		private float _cueOut;
 		private float _percent;
-		
+
+		private B2Jmask mask;
+
 		// working values
 		Vector3 p1;
 		Quaternion q1;
@@ -60,9 +62,15 @@ namespace B2J {
 			_speed = 1;
 			_weight = 1;
 			_mult = 1;
+
+			mask = null;
 			
 		}
-		
+
+		public B2Jmask getMask() {
+			return mask;
+		}
+
 		public B2Jloop Loop {
 			get {
 				return _loop;

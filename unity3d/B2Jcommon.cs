@@ -18,6 +18,24 @@ namespace B2J {
 				( dest.z - orig.z ) * ratio
 				);
 		}
+
+		public static Quaternion copy( Quaternion src ) {
+			return new Quaternion( src.x, src.y, src.z, src.w );
+		}
+
+		public static Vector3 copy( Vector3 src ) {
+			return new Vector3 (src.x, src.y, src.z);
+		}
+
+		public static void copy( B2JmaskConfig src, B2JmaskConfig dest ) {
+			dest.name = src.name;
+			dest.description = dest.description;
+			dest.version = src.version;
+			dest.weights.Clear ();
+			foreach( KeyValuePair< Transform, float > pair in src.weights )
+				dest.weights.Add( pair.Key, pair.Value );
+
+		}
 		
 	}
 
@@ -96,8 +114,60 @@ namespace B2J {
 		
 	}
 
-	// PLAYER SPECIFIC OBJECTS
+	// MASK SPECIFIC OBJECTS
 
+	public class B2JmaskConfig {
+		public string name;
+		public string description;
+		public float version;
+		public Dictionary< Transform, float > weights;
+		public B2JmaskConfig() {
+			name = "empty";
+			description = "empty configuration";
+			version = 0;
+			weights = new Dictionary< Transform, float > ();
+		}
+		public void Clear() {
+			weights.Clear ();
+		}
+	}
+
+	public class B2JmaskConfigLoader {
+
+		public static B2JmaskConfig load( string path, Transform[] transforms ) {
+			TextAsset asset = Resources.Load( path ) as TextAsset;
+			if ( asset == null) {
+				Debug.LogError ( "B2JmaskConfigLoader:: not loaded" );
+				return null;
+			}
+			IDictionary data = ( IDictionary ) Json.Deserialize ( asset.ToString() );
+			if ( data == null) {
+				Debug.LogError ( "Failed to parse " + asset.name );
+				return null;
+			}
+			if ( System.String.Compare ( (string) data ["type"], "mask") != 0) {
+				Debug.LogError ( "B2J masks must have a type 'mask'" );
+				return null;
+			}
+			B2JmaskConfig conf = new B2JmaskConfig ();
+			conf.name = (string) data[ "name" ];
+			conf.description = (string) data[ "desc" ];
+			conf.version = float.Parse( "" + data[ "version" ] );
+			IList values = ( IList ) data[ "mask" ];
+			for( int i = 0; i < values.Count; i++ ) {
+				IDictionary< string, object > value = ( Dictionary< string, object > ) values[ i ];
+				foreach( KeyValuePair< string, object > v in value ) {
+					foreach( Transform t in transforms ) {
+						if ( t.name == v.Key ) {
+							conf.weights.Add( t, float.Parse( v.Value.ToString() ) );
+						}
+					}
+				}
+			}
+			return conf;
+		}
+
+	}
 
 	// MAP SPECIFIC OBJECTS
 

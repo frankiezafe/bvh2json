@@ -14,8 +14,8 @@ public class B2JblenderUI : MonoBehaviour {
 	private float last_weight;
 
 	[ Range( 0.0f, 1.0f ) ]
-	public float smooth_strength;
-	private float last_smooth_strength;
+	public float smooth_speed;
+	private float last_smooth_speed;
 
 	public bool enable_smooth;
 	private bool last_enable_smooth;
@@ -26,8 +26,8 @@ public class B2JblenderUI : MonoBehaviour {
 		Model = blender.getName();
 		weight = blender.getWeight ();
 		last_weight = weight;
-		smooth_strength = blender.getSmoothStrength ();
-		last_smooth_strength = smooth_strength;
+		smooth_speed = blender.getSmoothSpeed ();
+		last_smooth_speed = smooth_speed;
 		enable_smooth = true;
 		last_enable_smooth = enable_smooth;
 
@@ -50,9 +50,9 @@ public class B2JblenderUI : MonoBehaviour {
 			last_weight = weight;
 		}
 
-		if (last_smooth_strength != smooth_strength) {
-			blender.setSmoothStrength( smooth_strength );
-			last_smooth_strength = smooth_strength;
+		if (last_smooth_speed != smooth_speed) {
+			blender.setSmoothSpeed( smooth_speed );
+			last_smooth_speed = smooth_speed;
 		}
 
 	}

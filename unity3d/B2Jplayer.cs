@@ -15,8 +15,18 @@ public class B2Jplayer : B2JgenericPlayer {
 	public bool normalise_rotations;
 	private bool last_normalise_rotations;
 
+	public bool normalise_translations;
+	private bool last_normalise_translations;
+
+	public bool normalise_scales;
+	private bool last_normalise_scales;
+
 	public bool interpolation;
 	private bool last_interpolation;
+
+	public bool mask_upper_only;
+	public bool mask_lower_only;
+	private int last_use_mask;
 
 	[ Range( 0.0f, 1.0f ) ]
 	public float percent;
@@ -35,12 +45,24 @@ public class B2Jplayer : B2JgenericPlayer {
 		normalise_rotations = rotationNormalise;
 		last_normalise_rotations = normalise_rotations;
 
+		normalise_translations = translationNormalise;
+		last_normalise_translations = normalise_translations;
+		
+		normalise_scales = scaleNormalise;
+		last_normalise_scales = normalise_scales;
+
 		interpolation = interpolate;
 		last_interpolation = interpolation;
+
+		mask_upper_only = false;
+		mask_lower_only = false;
+		last_use_mask = -1;
 
 		InitPlayer();
 
 		LoadMapping( Map_numediart ); // mapping for model "bvh_numediart"
+		LoadMask ( "bvh2json/data/tanuki_upperbody_mask" );
+		LoadMask ( "bvh2json/data/tanuki_lowerbody_mask" );
 
 		if (B2Jserver != null) {
 			B2Jserver.Load( "bvh2json/data/thomas_se_leve_02" );
@@ -83,9 +105,32 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		Process();
 
+		if ( mask_upper_only && last_use_mask != 0 ) {
+			ApplyMaskOnBlender( "bvh_numediart", "tanuki-upperbody" );
+			mask_lower_only = false;
+			last_use_mask = 0;
+		} else if ( mask_lower_only && last_use_mask != 1 ) {
+			ApplyMaskOnBlender( "bvh_numediart", "tanuki-lowerbody" );
+			mask_upper_only = false;
+			last_use_mask = 1;
+		} else if ( !mask_upper_only && !mask_lower_only && last_use_mask != -1 ) {
+			ResetMaskOnBlender( "bvh_numediart" );
+			last_use_mask = -1;
+		}
+
 		if ( normalise_rotations != last_normalise_rotations ) {
 			rotationNormalise = normalise_rotations;
 			last_normalise_rotations = normalise_rotations;
+		}
+
+		if ( normalise_translations != last_normalise_translations ) {
+			translationNormalise = normalise_translations;
+			last_normalise_translations = normalise_translations;
+		}
+		
+		if ( normalise_scales != last_normalise_scales ) {
+			scaleNormalise = normalise_scales;
+			last_normalise_scales = normalise_scales;
 		}
 
 		if ( interpolation != last_interpolation ) {
@@ -110,7 +155,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		Render();
 
 		// and applying on the model
-		foreach ( KeyValuePair< Transform, Quaternion > pair in updatedQuaternions ) {
+		foreach ( KeyValuePair< Transform, Quaternion > pair in quaternions ) {
 
 			Transform t = pair.Key;
 			Quaternion q = pair.Value;
