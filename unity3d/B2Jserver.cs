@@ -71,7 +71,7 @@ namespace B2J {
 
 			// is there playheads not registered anymore?
 			foreach ( B2Jplayhead ph in phs ) {
-				if ( ! _records.Contains( ph.Record ) ) {
+				if ( ! _records.Contains( ph.getRecord() ) ) {
 					phs.Remove( ph );
 					dict.Remove( ph.getName() );
 					modified = true;
@@ -82,7 +82,7 @@ namespace B2J {
 			foreach (B2Jrecord rec in _records) {
 				bool found = false;
 				foreach ( B2Jplayhead ph in phs ) {
-					if ( ph.Record == rec ) {
+					if ( ph.getRecord() == rec ) {
 						found = true;
 						break;
 					}

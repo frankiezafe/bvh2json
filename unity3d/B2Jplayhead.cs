@@ -95,104 +95,84 @@ namespace B2J {
 			_speed = s;
 		}
 		
-		public string Info {
-			get {
-				return "" + _time + " [ " + _cueIn + ", " + _cueOut + "], " + _record.name + " / " + _active;
-			}
+		public string getInfo() {
+			return "" + _time + " [ " + _cueIn + ", " + _cueOut + "], " + _record.name + " / " + _active;
+		}
+
+		public B2Jrecord getRecord() {
+			return _record;
+		}
+
+		public bool isActive() {
+			if ( !_active )
+				return false;
+			return true;
 		}
 		
-		public B2Jrecord Record {
-			get{
-				return _record;
+		public void setWeight( float w ) {
+
+			if ( w < 0 || w > 1 ) {
+				Debug.LogError( "weight must be in [ 0,1 ]!" );
+				return;
 			}
+			_weight = w;
+		}
+
+		public float getWeight() {
+			return _weight;
+		}
+
+		public float getMultiplier() {
+			return _mult;
+		}
+
+		public void setMultiplier( float m ) {
+			_mult = m;
 		}
 		
-		public bool Active {
-			get{
-				if ( !_active || _weight == 0 )
-					return false;
-				return true;
-			}
+		public float getPercent() {
+			return _percent;
+		}
+
+		public void setPercent( float p ) {
+			_percent = p;
+			_time = _cueIn + ( _cueOut - _cueIn ) * _percent;
 		}
 		
-		public float Weight {
-			set {
-				if ( value < 0 || value > 1 ) {
-					Debug.LogError( "weight must be in [ 0,1 ]!" );
-					return;
-				}
-				_weight = value;
-			}
-			get {
-				return _weight;
-			}
+		public float getCurrentTime() {
+			return _time;
 		}
 		
-		public float Multiplier {
-			get {
-				return _mult;
-			}
-			set {
-				_mult = value;
-			}
+		public float getCueIn() {
+			return _cueIn;
+		}
+
+		public void setCueIn( float ci ) {
+			_cueIn = ci;
 		}
 		
-		public float Percent {
-			get {
-				return _percent;
-			}
-			set {
-				_percent = value;
-				_time = _cueIn + ( _cueOut - _cueIn ) * _percent;
-			}
+		public float getCueOut() {
+			return _cueOut;
+		}
+
+		public void setCueOut( float co ) {
+			_cueOut = co;
 		}
 		
-		public float CurrentTime {
-			get {
-				return _time;
-			}
+		public List< Quaternion > getRotations() {
+			return _rotations;
 		}
 		
-		public float CueIn {
-			get {
-				return _cueIn;
-			}
-			set {
-				_cueIn = value;
-			}
+		public List< Vector3 > getPositions() {
+			return _positions;
 		}
 		
-		public float CueOut {
-			get {
-				return _cueOut;
-			}
-			set {
-				_cueOut = value;
-			}
+		public List< Vector3 > getScales() {
+			return _scales;
 		}
 		
-		public List< Quaternion > Rotations {
-			get {
-				return _rotations;
-			}
-		}
-		
-		public List< Vector3 > Positions {
-			get {
-				return _positions;
-			}
-		}
-		
-		public List< Vector3 > Scales {
-			get {
-				return _scales;
-			}
-		}
-		
-		public List< Vector3 > Eulers {
-			get {
-				return _eulers;
-			}
+		public List< Vector3 > getEulers() {
+			return _eulers;
 		}
 		
 		public string getRotationOrder( int bID ) {

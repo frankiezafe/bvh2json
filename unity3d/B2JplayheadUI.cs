@@ -21,7 +21,7 @@ public class B2JplayheadUI : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 	
-		weight = playhead.Weight;
+		weight = playhead.getWeight();
 
 	}
 	
@@ -29,12 +29,12 @@ public class B2JplayheadUI : MonoBehaviour {
 	void Update () {
 	
 		if ( weight != lastWeight ) {
-			playhead.Weight = weight;
+			playhead.setWeight( weight );
 			lastWeight = weight;
 		}
 
-		HeadReadOnly = playhead.Percent;
-		WeightReadOnly = playhead.Weight;
+		HeadReadOnly = playhead.getPercent();
+		WeightReadOnly = playhead.getWeight();
 
 	}
 }

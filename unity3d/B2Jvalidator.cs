@@ -33,7 +33,7 @@ public class B2Jvalidator : B2JgenericPlayer {
 		process();
 
 		ph = getPlayhead( "thomas_se_leve_02" );
-		rec = ph.Record;
+		rec = ph.getRecord();
 		m = maps["bvh_numediart"];
 		// z axis should point in the bone direction
 		defaultRot = new Dictionary < Transform, Quaternion >();
@@ -62,7 +62,7 @@ public class B2Jvalidator : B2JgenericPlayer {
 			B2Jbone b = rec.bones[ pair.Key ];
 			B2JtransformList ml = pair.Value;
 			for ( int i = 0; i < ml.transforms.Count; i++ ) {
-				Quaternion q = ph.Rotations[ pair.Key ];
+				Quaternion q = ph.getRotations()[ pair.Key ];
 				Transform t = armature[ ml.transforms[ i ].name ];
 				t.localRotation = q;
 			}

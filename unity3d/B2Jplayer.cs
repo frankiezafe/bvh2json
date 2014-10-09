@@ -79,7 +79,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		lastSpeed = speed;
 
 		foreach ( B2Jplayhead ph in playheadList ) {
-			ph.Percent = percent;
+			ph.setPercent( percent );
 			ph.setSpeed( speed );
 		}
 
@@ -90,9 +90,9 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		for( int i = 0; i < playheadList.Count; i++ ) {
 			if ( i == 0 ) {
-				playheadList[ i ].Weight = 1;
+				playheadList[ i ].setWeight( 1 );
 			} else {
-				playheadList[ i ].Weight = 0;
+				playheadList[ i ].setWeight( 0 );
 			}
 			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
 			ui.Mocap = playheadList[ i ].getName();
@@ -140,7 +140,7 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		if ( lastPercent != percent ) {
 			foreach ( B2Jplayhead ph in playheadList ) {
-				ph.Percent = percent;
+				ph.setPercent( percent );
 			}
 			lastPercent = percent;
 		}

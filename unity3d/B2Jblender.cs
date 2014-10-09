@@ -181,7 +181,7 @@ namespace B2J {
 
 			if ( rotNormalise || transNormalise || scaleNormalise ) {
 				foreach (B2Jplayhead ph in playheads)
-					totalWeight += ph.Weight;
+					totalWeight += ph.getWeight();
 				if ( totalWeight < 1 ) {
 					totalWeight = 1;
 				} else {
@@ -204,7 +204,7 @@ namespace B2J {
 						Transform t = tlist.transforms[ i ];
 						float locw = tlist.weights[ i ];
 						
-						float ratio = locw * ph.Weight * totalWeight; // calcul du weight absolu
+						float ratio = locw * ph.getWeight() * totalWeight; // calcul du weight absolu
 						
 						if ( map.enable_rotations ) {
 							if ( !newQuaternions.ContainsKey( t ) ) {
@@ -216,7 +216,7 @@ namespace B2J {
 									initialQuaternions[t].w ); 
 								newQuaternions.Add( t, qbase );
 							}
-							Quaternion newrot = ph.Rotations[ bid ];
+							Quaternion newrot = ph.getRotations()[ bid ];
 							// depending on the record model, quaternion is processed differently
 							if ( ph.getModel() == "bvh_numediart" ) {
 								Matrix4x4 mat = new Matrix4x4();
@@ -246,7 +246,7 @@ namespace B2J {
 								newTranslations.Add( t, Vector3.zero );
 							}
 							
-							Vector3 newpos = ph.Positions[ bid ];
+							Vector3 newpos = ph.getPositions()[ bid ];
 							if ( ph.getModel() == "bvh_numediart" ) {
 								newpos *= 0.01f;
 							} else {
@@ -266,7 +266,7 @@ namespace B2J {
 								newScales.Add( t, Vector3.one );
 							}
 							
-							Vector3 newscale = ph.Scales[ bid ];
+							Vector3 newscale = ph.getScales()[ bid ];
 
 							if ( scaleNormalise ) {
 								newscale *= ratio;
