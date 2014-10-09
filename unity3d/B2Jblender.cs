@@ -218,7 +218,7 @@ namespace B2J {
 							}
 							Quaternion newrot = ph.getRotations()[ bid ];
 							// depending on the record model, quaternion is processed differently
-							if ( ph.getModel() == "bvh_numediart" ) {
+							if ( ph.getModel() == "bvh_numediart" || ph.getModel() == "bvh_numediart_other" ) {
 								Matrix4x4 mat = new Matrix4x4();
 								mat.SetTRS( Vector3.zero, newrot, Vector3.one );
 								Matrix4x4 tmat = world2local[ t ];
@@ -247,7 +247,7 @@ namespace B2J {
 							}
 							
 							Vector3 newpos = ph.getPositions()[ bid ];
-							if ( ph.getModel() == "bvh_numediart" ) {
+							if ( ph.getModel() == "bvh_numediart" || ph.getModel() == "bvh_numediart_other" ) {
 								newpos *= 0.01f;
 							} else {
 								Debug.LogError( "enable_translations :: UNKNOWN B2J MODEL!!! : " + ph.getModel() );

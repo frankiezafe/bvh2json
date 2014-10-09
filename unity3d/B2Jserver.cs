@@ -11,7 +11,7 @@ namespace B2J {
 
 	public class B2Jserver: MonoBehaviour {
 		
-		private List<string> _loadedpath;
+		private Dictionary< string, B2Jrecord > _loadedpath;
 		private List<string> _loadingpath;
 		private List<B2Jrecord> _records;
 
@@ -20,11 +20,11 @@ namespace B2J {
 		private bool verbose;
 
 		public B2Jserver() {
-			_loadedpath = new List<string> ();
+			_loadedpath = new Dictionary< string, B2Jrecord > ();
 			_loadingpath = new List<string> ();
 			_records = new List<B2Jrecord> ();
 			newRecord = false;
-			verbose = true;
+			verbose = false;
 		}
 
 		public void setQuiet() {
@@ -43,8 +43,8 @@ namespace B2J {
 
 		public void OnDestroy() {}
 
-		public void load( string path ) {
-			if ( _loadedpath.Contains ( path ) ) {
+		private void load( string path ) {
+			if ( _loadedpath.ContainsKey ( path ) ) {
 				if ( verbose )
 					Debug.Log ( "'" + path + "' already loaded" );
 				return;
@@ -54,7 +54,7 @@ namespace B2J {
 		
 		public void addNewRecord( B2Jrecord rec, string path ) {
 			if ( rec != null ) {
-				_loadedpath.Add( path );
+				_loadedpath.Add( path, rec );
 				_records.Add( rec );
 				newRecord = true;
 				if ( verbose )
@@ -62,11 +62,11 @@ namespace B2J {
 			}
 		}
 
-		public bool syncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
+		public bool syncPlayheads( List< string > syncRequests, List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
 
 			bool modified = false;
 
-			if ( !newRecord && phs.Count == _records.Count )
+			if ( !newRecord && syncRequests.Count == 0 && phs.Count == _records.Count )
 				return modified;
 
 			// is there playheads not registered anymore?
@@ -78,21 +78,45 @@ namespace B2J {
 				}
 			}
 
-			// new records may have been loaded, creating a new playhead if required
-			foreach (B2Jrecord rec in _records) {
-				bool found = false;
-				foreach ( B2Jplayhead ph in phs ) {
-					if ( ph.getRecord() == rec ) {
-						found = true;
-						break;
+			// is there sync requests?
+			if ( syncRequests.Count > 0 ) {
+				List< string > tmpreqs = new List< string > (syncRequests);
+				foreach( string path in tmpreqs ) {
+
+					load( path );
+
+					if ( _loadedpath.ContainsKey ( path ) ) {
+
+						B2Jplayhead ph = createNewPlayhead( _loadedpath[ path ], phs, loop );
+						dict.Add( ph.getName(), ph );
+						modified = true;
+
+					} else {
+
+						Debug.LogError( "Impossible to load the record '" + path +"'" );
+
 					}
-				}
-				if ( !found ) {
-					B2Jplayhead ph = createNewPlayhead( rec, phs, loop );
-					dict.Add( ph.getName(), ph );
-					modified = true;
+
+					syncRequests.Remove( path );
+
 				}
 			}
+
+			// new records may have been loaded, creating a new playhead if required
+//			foreach (B2Jrecord rec in _records) {
+//				bool found = false;
+//				foreach ( B2Jplayhead ph in phs ) {
+//					if ( ph.getRecord() == rec ) {
+//						found = true;
+//						break;
+//					}
+//				}
+//				if ( !found ) {
+//					B2Jplayhead ph = createNewPlayhead( rec, phs, loop );
+//					dict.Add( ph.getName(), ph );
+//					modified = true;
+//				}
+//			}
 			
 			newRecord = false;
 

@@ -26,9 +26,7 @@ public class B2Jvalidator : B2JgenericPlayer {
 		initPlayer();
 
 		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
-		if ( B2Jserver != null ) {
-			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
-		}
+		loadRecord( "bvh2json/data/thomas_se_leve_02" );
 
 		process();
 

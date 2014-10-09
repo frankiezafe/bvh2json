@@ -10,6 +10,7 @@ using B2J;
 public class B2Jplayer : B2JgenericPlayer {
 
 	public TextAsset Map_numediart;
+	public TextAsset Map_numediart_other;
 	private int correctionCount;
 
 	public bool normalise_rotations;
@@ -58,17 +59,19 @@ public class B2Jplayer : B2JgenericPlayer {
 		mask_lower_only = false;
 		last_use_mask = -1;
 
+		setVerbose();
+
 		initPlayer();
 
 		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
+		loadMapping( Map_numediart_other ); // mapping for model "bvh_numediart"
+
 		loadMask ( "bvh2json/data/tanuki_upperbody_mask" );
 		loadMask ( "bvh2json/data/tanuki_lowerbody_mask" );
 
-		if (B2Jserver != null) {
-			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
-//			B2Jserver.load( "bvh2json/data/tensions_01" );
-			B2Jserver.load( "bvh2json/data/capoiera" );
-		}
+		loadRecord( "bvh2json/data/thomas_se_leve_02" );
+		loadRecord( "bvh2json/data/capoiera" );
+		loadRecord( "bvh2json/data/ariaII_02" );
 
 		process();
 
@@ -107,14 +110,17 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		if ( mask_upper_only && last_use_mask != 0 ) {
 			applyMaskOnBlender( "bvh_numediart", "tanuki-upperbody" );
+			applyMaskOnBlender( "bvh_numediart_other", "tanuki-lowerbody" );
 			mask_lower_only = false;
 			last_use_mask = 0;
 		} else if ( mask_lower_only && last_use_mask != 1 ) {
 			applyMaskOnBlender( "bvh_numediart", "tanuki-lowerbody" );
+			applyMaskOnBlender( "bvh_numediart_other", "tanuki-upperbody" );
 			mask_upper_only = false;
 			last_use_mask = 1;
 		} else if ( !mask_upper_only && !mask_lower_only && last_use_mask != -1 ) {
 			resetMaskOnBlender( "bvh_numediart" );
+			resetMaskOnBlender( "bvh_numediart_other" );
 			last_use_mask = -1;
 		}
 

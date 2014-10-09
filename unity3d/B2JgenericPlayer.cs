@@ -18,7 +18,11 @@ namespace B2J {
 		protected List< B2Jblender > blenderList;
 		protected Dictionary< string, B2Jplayhead > playheadDict;
 		protected List< B2Jplayhead > playheadList;
-		
+
+		// this list is storing the requested records
+		// it is consumed by server and cleaned once loaded
+		protected List< string > syncRequests;
+
 		protected Dictionary < Transform, Matrix4x4 > world2local;
 		protected Dictionary < string, Transform > armature;
 		// if weights[ key ] is -1 -> no config for the transform, 0 will be used 
@@ -56,6 +60,8 @@ namespace B2J {
 			blenderList = new List< B2Jblender >();
 			playheadDict = new Dictionary< string, B2Jplayhead >();
 			playheadList = new List< B2Jplayhead > ();
+
+			syncRequests = new List< string > ();
 			
 			// making a copy of the current object rotations and orientations
 			world2local = new Dictionary < Transform, Matrix4x4 >();
@@ -130,6 +136,21 @@ namespace B2J {
 
 		}
 
+		public void loadRecord( string path ) {
+			syncRequests.Add( path );
+		}
+
+		public void loadMapping( string path ) {
+
+			TextAsset asset = Resources.Load( path ) as TextAsset;
+			if ( asset == null) {
+				Debug.LogError ( "Map '" + path + "' not loaded" );
+				return;
+			}
+			loadMapping ( asset );
+
+		}
+
 		public void loadMapping( TextAsset asset ) {
 			B2Jmap map = new B2Jmap();
 			if ( map.load( asset, this ) ) {
@@ -196,7 +217,7 @@ namespace B2J {
 
 			if ( B2Jserver != null ) {
 
-				bool smthchanged = B2Jserver.syncPlayheads( playheadList, playheadDict, defaultLoop );
+				bool smthchanged = B2Jserver.syncPlayheads( syncRequests, playheadList, playheadDict, defaultLoop );
 
 				if ( smthchanged || forceSync ) {
 
@@ -246,7 +267,7 @@ namespace B2J {
 
 								mb.playheads.Add( ph );
 								if ( verbose )
-									Debug.Log ( "new map blend added " + ph.getModel() + " >> " + ph.getName() );
+									Debug.Log ( "new playhead added in blender " + ph.getModel() + " >> " + ph.getName() );
 
 							}
 
@@ -271,8 +292,16 @@ namespace B2J {
 		}
 		
 		protected void render() {
-			
 
+//			string s = "playheadList.Count " + playheadList.Count +"\n";
+//			foreach (B2Jblender bb in blenderList) {
+//				s += "\t" + bb.getName() +" have "+ bb.playheads.Count + "\n";
+//				foreach( B2Jplayhead mb_ph in bb.playheads ) {
+//					s += "\t\t" + mb_ph.getName() + "\n";
+//				}
+//			}
+//			Debug.Log ( s );
+			// return;
 
 			// all values and weights to initial ones
 			reset();
@@ -286,11 +315,9 @@ namespace B2J {
 			// blender1 weight * arm weight + blender2 weight * arm weight
 			// first thing is to check the mask of all blenders and
 			// collect the weights transform per transform
-			float blenderWeight = 0;
 			foreach (B2Jblender bb in blenderList) {
 
 				bb.update( rotationNormalise, translationNormalise, scaleNormalise );
-				blenderWeight += bb.getWeight();
 
 				B2Jmask m = bb.getMask();
 				if ( m != null ) {
@@ -353,7 +380,7 @@ namespace B2J {
 
 					if ( map.enable_rotations ) {
 						if ( rotationNormalise ) {
-							quaternions[ t ] = Quaternion.Slerp( quaternions[ t ], qts[ t ], tw );
+							quaternions[ t ] = Quaternion.Slerp( quaternions[ t ], qts[ t ], lw );
 						} else {
 							quaternions[ t ] *= qts[ t ];
 						}
@@ -361,7 +388,7 @@ namespace B2J {
 
 					if ( map.enable_translations ) {
 						if ( translationNormalise ) {
-							translations[ t ] = B2Jutils.vectorSlerp( translations[ t ], tls[ t ], tw );
+							translations[ t ] = B2Jutils.vectorSlerp( translations[ t ], tls[ t ], lw );
 						} else {
 							translations[ t ] += tls[ t ];
 						}
@@ -369,7 +396,7 @@ namespace B2J {
 
 					if ( map.enable_scales ) {
 						if ( scaleNormalise ) {
-							scales[ t ] = B2Jutils.vectorSlerp( scales[ t ], scs[ t ], tw );
+							scales[ t ] = B2Jutils.vectorSlerp( scales[ t ], scs[ t ], lw );
 						} else {
 							scales[ t ] += scs[ t ];
 						}
