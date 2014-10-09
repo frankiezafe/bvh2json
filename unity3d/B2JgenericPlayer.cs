@@ -176,7 +176,7 @@ namespace B2J {
 		
 		public B2Jplayhead getPlayhead( string name ) {
 			foreach( B2Jplayhead ph in playheadList )
-				if ( ph.Name == name )
+				if ( ph.getName() == name )
 					return ph;
 			return null;
 		}
@@ -227,9 +227,9 @@ namespace B2J {
 					// then checking new ones
 					foreach ( B2Jplayhead ph in playheadList ) {
 					
-						if ( blenderByModel.ContainsKey( ph.Model ) ) {
+						if ( blenderByModel.ContainsKey( ph.getModel() ) ) {
 
-							B2Jblender mb = blenderByModel[ ph.Model ];
+							B2Jblender mb = blenderByModel[ ph.getModel() ];
 
 							bool found = false;
 
@@ -246,13 +246,13 @@ namespace B2J {
 
 								mb.playheads.Add( ph );
 								if ( verbose )
-									Debug.Log ( "new map blend added " + ph.Model + " >> " + ph.Name );
+									Debug.Log ( "new map blend added " + ph.getModel() + " >> " + ph.getName() );
 
 							}
 
 						} else {
 
-							Debug.LogError( "the player have no map for this model! '" + ph.Model + "'" );
+							Debug.LogError( "the player have no map for this model! '" + ph.getModel() + "'" );
 
 						}
 					

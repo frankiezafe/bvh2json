@@ -71,25 +71,20 @@ namespace B2J {
 			return mask;
 		}
 
-		public B2Jloop Loop {
-			get {
-				return _loop;
-			}
-			set {
-				_loop = value;
-			}
+		public B2Jloop getLoop() {
+			return _loop;
 		}
-		
-		public string Name {
-			get {
-				return _record.name;
-			}
+
+		public void setLoop( B2Jloop l ) {
+			_loop = l;
 		}
-		
-		public string Model {
-			get {
-				return _record.model;
-			}
+
+		public string getName()  {
+			return _record.name;
+		}
+
+		public string getModel()  {
+			return _record.model;
 		}
 		
 		public float Speed {

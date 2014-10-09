@@ -73,7 +73,7 @@ namespace B2J {
 			foreach ( B2Jplayhead ph in phs ) {
 				if ( ! _records.Contains( ph.Record ) ) {
 					phs.Remove( ph );
-					dict.Remove( ph.Name );
+					dict.Remove( ph.getName() );
 					modified = true;
 				}
 			}
@@ -89,7 +89,7 @@ namespace B2J {
 				}
 				if ( !found ) {
 					B2Jplayhead ph = createNewPlayhead( rec, phs, loop );
-					dict.Add( ph.Name, ph );
+					dict.Add( ph.getName(), ph );
 					modified = true;
 				}
 			}

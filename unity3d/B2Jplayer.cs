@@ -95,7 +95,7 @@ public class B2Jplayer : B2JgenericPlayer {
 				playheadList[ i ].Weight = 0;
 			}
 			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
-			ui.Mocap = playheadList[ i ].Name;
+			ui.Mocap = playheadList[ i ].getName();
 			ui.playhead = playheadList[ i ];
 		}
 
