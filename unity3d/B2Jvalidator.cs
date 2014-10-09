@@ -21,18 +21,18 @@ public class B2Jvalidator : B2JgenericPlayer {
 		LineRenderer[] all_linerenders = GetComponentsInChildren<LineRenderer>();
 		liner = all_linerenders[ 0 ];
 
-		Quiet();
+		setQuiet();
 
-		InitPlayer();
+		initPlayer();
 
-		LoadMapping( Map_numediart ); // mapping for model "bvh_numediart"
+		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
 		if ( B2Jserver != null ) {
-			B2Jserver.Load( "bvh2json/data/thomas_se_leve_02" );
+			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
 		}
 
-		Process();
+		process();
 
-		ph = GetPlayhead( "thomas_se_leve_02" );
+		ph = getPlayhead( "thomas_se_leve_02" );
 		rec = ph.Record;
 		m = maps["bvh_numediart"];
 		// z axis should point in the bone direction
@@ -55,8 +55,8 @@ public class B2Jvalidator : B2JgenericPlayer {
 	// Update is called once per frame
 	void Update () {
 
-		Process();
-		Render();
+		process();
+		render();
 
 		foreach ( KeyValuePair< int, B2JtransformList > pair in m.transformListById ) {
 			B2Jbone b = rec.bones[ pair.Key ];

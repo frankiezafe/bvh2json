@@ -292,11 +292,11 @@ namespace B2J {
 				}
 				foreach ( KeyValuePair< Transform, Vector3 > pair in newTranslations ) {
 					Vector3 v = translations[ pair.Key ];
-					translations[ pair.Key ] = B2Jutils.VectorSlerp( v, pair.Value, smooth_speed );
+					translations[ pair.Key ] = B2Jutils.vectorSlerp( v, pair.Value, smooth_speed );
 				}
 				foreach ( KeyValuePair< Transform, Vector3 > pair in newScales ) {
 					Vector3 v = scales[ pair.Key ];
-					scales[ pair.Key ] = B2Jutils.VectorSlerp( v, pair.Value, smooth_speed );
+					scales[ pair.Key ] = B2Jutils.vectorSlerp( v, pair.Value, smooth_speed );
 				}
 			
 			// by default: simple copy of new values in dictionary

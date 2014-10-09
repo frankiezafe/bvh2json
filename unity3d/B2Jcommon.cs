@@ -11,7 +11,7 @@ namespace B2J {
 	// USEFUL METHODS
 	public class B2Jutils {
 		
-		public static Vector3 VectorSlerp( Vector3 orig, Vector3 dest, float ratio ) {
+		public static Vector3 vectorSlerp( Vector3 orig, Vector3 dest, float ratio ) {
 			return new Vector3(
 				( dest.x - orig.x ) * ratio,
 				( dest.y - orig.y ) * ratio,
@@ -127,7 +127,7 @@ namespace B2J {
 			version = 0;
 			weights = new Dictionary< Transform, float > ();
 		}
-		public void Clear() {
+		public void clear() {
 			weights.Clear ();
 		}
 	}

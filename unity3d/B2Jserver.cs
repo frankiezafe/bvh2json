@@ -27,11 +27,11 @@ namespace B2J {
 			verbose = true;
 		}
 
-		public void Quiet() {
+		public void setQuiet() {
 			verbose = false;
 		}
 
-		public void Verbose() {
+		public void setVerbose() {
 			verbose = true;
 		}
 
@@ -43,16 +43,16 @@ namespace B2J {
 
 		public void OnDestroy() {}
 
-		public void Load( string path ) {
+		public void load( string path ) {
 			if ( _loadedpath.Contains ( path ) ) {
 				if ( verbose )
 					Debug.Log ( "'" + path + "' already loaded" );
 				return;
 			}
-			AddNewRecord( B2Jparser.Instance.load ( path ), path );
+			addNewRecord( B2Jparser.Instance.load ( path ), path );
 		}
 		
-		public void AddNewRecord( B2Jrecord rec, string path ) {
+		public void addNewRecord( B2Jrecord rec, string path ) {
 			if ( rec != null ) {
 				_loadedpath.Add( path );
 				_records.Add( rec );
@@ -62,7 +62,7 @@ namespace B2J {
 			}
 		}
 
-		public bool SyncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
+		public bool syncPlayheads( List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
 
 			bool modified = false;
 
@@ -109,7 +109,7 @@ namespace B2J {
 		}
 
 		
-		public void PrintRecord( B2Jrecord br ) {
+		public void printRecord( B2Jrecord br ) {
 			
 			if (br == null) {
 				Debug.Log ("BVH2JSON: record is empty" );

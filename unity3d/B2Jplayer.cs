@@ -58,19 +58,19 @@ public class B2Jplayer : B2JgenericPlayer {
 		mask_lower_only = false;
 		last_use_mask = -1;
 
-		InitPlayer();
+		initPlayer();
 
-		LoadMapping( Map_numediart ); // mapping for model "bvh_numediart"
-		LoadMask ( "bvh2json/data/tanuki_upperbody_mask" );
-		LoadMask ( "bvh2json/data/tanuki_lowerbody_mask" );
+		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
+		loadMask ( "bvh2json/data/tanuki_upperbody_mask" );
+		loadMask ( "bvh2json/data/tanuki_lowerbody_mask" );
 
 		if (B2Jserver != null) {
-			B2Jserver.Load( "bvh2json/data/thomas_se_leve_02" );
+			B2Jserver.load( "bvh2json/data/thomas_se_leve_02" );
 //			B2Jserver.load( "bvh2json/data/tensions_01" );
-			B2Jserver.Load( "bvh2json/data/capoiera" );
+			B2Jserver.load( "bvh2json/data/capoiera" );
 		}
 
-		Process();
+		process();
 
 		percent = 0;
 		lastPercent = percent;
@@ -103,18 +103,18 @@ public class B2Jplayer : B2JgenericPlayer {
 
 	void Update() {
 
-		Process();
+		process();
 
 		if ( mask_upper_only && last_use_mask != 0 ) {
-			ApplyMaskOnBlender( "bvh_numediart", "tanuki-upperbody" );
+			applyMaskOnBlender( "bvh_numediart", "tanuki-upperbody" );
 			mask_lower_only = false;
 			last_use_mask = 0;
 		} else if ( mask_lower_only && last_use_mask != 1 ) {
-			ApplyMaskOnBlender( "bvh_numediart", "tanuki-lowerbody" );
+			applyMaskOnBlender( "bvh_numediart", "tanuki-lowerbody" );
 			mask_upper_only = false;
 			last_use_mask = 1;
 		} else if ( !mask_upper_only && !mask_lower_only && last_use_mask != -1 ) {
-			ResetMaskOnBlender( "bvh_numediart" );
+			resetMaskOnBlender( "bvh_numediart" );
 			last_use_mask = -1;
 		}
 
@@ -152,7 +152,7 @@ public class B2Jplayer : B2JgenericPlayer {
 			lastSpeed = speed;
 		}
 
-		Render();
+		render();
 
 		// and applying on the model
 		foreach ( KeyValuePair< Transform, Quaternion > pair in quaternions ) {

@@ -82,20 +82,20 @@ namespace B2J {
 
 			defaultLoop = B2Jloop.B2JLOOP_NORMAL;
 
-			verbose = true;
+			verbose = false;
 			forceSync = true;
 
 		}
 
-		public void Quiet() {
+		public void setQuiet() {
 			verbose = false;
 		}
 		
-		public void Verbose() {
+		public void setVerbose() {
 			verbose = true;
 		}
 
-		protected void InitPlayer() {
+		protected void initPlayer() {
 			
 			all_transforms = GetComponentsInChildren<Transform>();
 			foreach( Transform t in all_transforms ) {
@@ -130,7 +130,7 @@ namespace B2J {
 
 		}
 
-		public void LoadMapping( TextAsset asset ) {
+		public void loadMapping( TextAsset asset ) {
 			B2Jmap map = new B2Jmap();
 			if ( map.load( asset, this ) ) {
 				if ( maps.ContainsKey( map.model ) && verbose ) {
@@ -151,7 +151,7 @@ namespace B2J {
 			}
 		}
 
-		public void LoadMask( string path ) {
+		public void loadMask( string path ) {
 			B2JmaskConfig mc = B2JmaskConfigLoader.load ( path, all_transforms );
 			if ( mc == null ) {
 				return;
@@ -159,7 +159,7 @@ namespace B2J {
 			maskConfigs.Add( mc.name, mc );
 		}
 
-		public void ApplyMaskOnBlender( string blenderModel, string maskName ) {
+		public void applyMaskOnBlender( string blenderModel, string maskName ) {
 			B2JmaskConfig mc = maskConfigs [maskName];
 			B2Jblender bb = blenderByModel[ blenderModel ];
 			if ( mc != null && bb != null ) {
@@ -167,21 +167,21 @@ namespace B2J {
 			}
 		}
 
-		public void ResetMaskOnBlender( string blenderModel ) {
+		public void resetMaskOnBlender( string blenderModel ) {
 			B2Jblender bb = blenderByModel[ blenderModel ];
 			if (  bb != null ) {
 				bb.getMask().reset();
 			}
 		}
 		
-		public B2Jplayhead GetPlayhead( string name ) {
+		public B2Jplayhead getPlayhead( string name ) {
 			foreach( B2Jplayhead ph in playheadList )
 				if ( ph.Name == name )
 					return ph;
 			return null;
 		}
 		
-		protected void Process() {
+		protected void process() {
 
 			synchronise();
 			
@@ -196,7 +196,7 @@ namespace B2J {
 
 			if ( B2Jserver != null ) {
 
-				bool smthchanged = B2Jserver.SyncPlayheads( playheadList, playheadDict, defaultLoop );
+				bool smthchanged = B2Jserver.syncPlayheads( playheadList, playheadDict, defaultLoop );
 
 				if ( smthchanged || forceSync ) {
 
@@ -270,7 +270,7 @@ namespace B2J {
 
 		}
 		
-		protected void Render() {
+		protected void render() {
 			
 
 
@@ -361,7 +361,7 @@ namespace B2J {
 
 					if ( map.enable_translations ) {
 						if ( translationNormalise ) {
-							translations[ t ] = B2Jutils.VectorSlerp( translations[ t ], tls[ t ], tw );
+							translations[ t ] = B2Jutils.vectorSlerp( translations[ t ], tls[ t ], tw );
 						} else {
 							translations[ t ] += tls[ t ];
 						}
@@ -369,7 +369,7 @@ namespace B2J {
 
 					if ( map.enable_scales ) {
 						if ( scaleNormalise ) {
-							scales[ t ] = B2Jutils.VectorSlerp( scales[ t ], scs[ t ], tw );
+							scales[ t ] = B2Jutils.vectorSlerp( scales[ t ], scs[ t ], tw );
 						} else {
 							scales[ t ] += scs[ t ];
 						}
