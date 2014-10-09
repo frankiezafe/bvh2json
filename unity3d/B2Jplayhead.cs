@@ -86,14 +86,13 @@ namespace B2J {
 		public string getModel()  {
 			return _record.model;
 		}
-		
-		public float Speed {
-			get {
-				return _speed;
-			}
-			set {
-				_speed = value;
-			}
+
+		public float getSpeed()  {
+			return _speed;
+		}
+
+		public void setSpeed( float s )  {
+			_speed = s;
 		}
 		
 		public string Info {

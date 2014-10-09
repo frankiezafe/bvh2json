@@ -80,7 +80,7 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		foreach ( B2Jplayhead ph in playheadList ) {
 			ph.Percent = percent;
-			ph.Speed = speed;
+			ph.setSpeed( speed );
 		}
 
 		foreach ( B2Jblender bb in blenderList ) {
@@ -147,7 +147,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		 
 		if ( lastSpeed != speed ) {
 			foreach ( B2Jplayhead ph in playheadList ) {
-				ph.Speed = speed;
+				ph.setSpeed( speed );
 			}
 			lastSpeed = speed;
 		}
