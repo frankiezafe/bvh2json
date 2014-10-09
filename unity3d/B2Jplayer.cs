@@ -107,6 +107,44 @@ public class B2Jplayer : B2JgenericPlayer {
 
 		process();
 
+		if ( smthchanged ) {
+
+			UIblender[] uibs = gameObject.GetComponents< UIblender >();
+			UIplayhead[] uiphs = gameObject.GetComponents< UIplayhead >();
+			
+			foreach ( B2Jblender bb in blenderList ) {
+				bool found = false;
+				for( int i = 0; i < uibs.Length; i++ ) {
+					if ( uibs[ i ].blender == bb ) {
+						found = true;
+						break;
+					}
+				}
+				if ( !found ) {
+					UIblender ui = gameObject.AddComponent<UIblender>();
+					ui.blender = bb;
+					foreach( B2Jplayhead ph in bb.playheads ) {
+						UIplayhead uip = gameObject.AddComponent<UIplayhead>();
+						uip.playhead = ph;
+					}
+				} else {
+					found = false;
+					foreach( B2Jplayhead ph in bb.playheads ) {
+						for( int i = 0; i < uiphs.Length; i++ ) {
+							if ( uiphs[ i ].playhead == ph ) {
+								found = true;
+								break;
+							}
+						}
+						if ( !found ) {
+							UIplayhead uip = gameObject.AddComponent<UIplayhead>();
+							uip.playhead = ph;
+						}
+					}
+				}
+			}
+		}
+
 		if ( mask_upper_only && last_use_mask != 0 ) {
 			applyMaskOnBlender( "bvh_numediart", "tanuki-upperbody" );
 			applyMaskOnBlender( "bvh_numediart_other", "tanuki-lowerbody" );
