@@ -61,7 +61,7 @@ public class B2Jplayer : B2JgenericPlayer {
 
 //		setVerbose();
 
-		initPlayer();
+		initPlayer( GetComponentsInChildren<Transform>() );
 
 		loadMapping( Map_numediart ); // mapping for model "bvh_numediart"
 		loadMapping( Map_numediart_other ); // mapping for model "bvh_numediart"

@@ -102,9 +102,25 @@ namespace B2J {
 		
 		}
 
+		protected void initPlayer( List< Transform > tlist ) {
+			all_transforms = new Transform[ tlist.Count ];
+			for ( int i = 0; i < tlist.Count; i++ ) {
+				all_transforms[ i ] = tlist[ i ];
+			}
+			initPlayer ();
+		}
+
+		protected void initPlayer( Transform[] tlist ) {
+			all_transforms = tlist;
+			initPlayer ();
+		}
+
 		protected void initPlayer() {
-			
-			all_transforms = GetComponentsInChildren<Transform>();
+
+			if ( all_transforms == null ) {
+				all_transforms = GetComponentsInChildren<Transform>();
+			}
+
 			foreach( Transform t in all_transforms ) {
 				
 				armature.Add( t.name, t );
