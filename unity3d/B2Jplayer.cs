@@ -166,21 +166,6 @@ public class B2Jplayer : B2JgenericPlayer {
 			Transform t = pair.Key;
 			Quaternion q = pair.Value;
 			t.localRotation = q;
-			
-//			Transform t = pair.Key;
-//			Quaternion locValue = Quaternion.identity;
-//			Matrix4x4 mat = new Matrix4x4();
-//			mat.SetTRS( Vector3.zero, pair.Value, Vector3.one );
-//			Matrix4x4 tmat = _world2local[ t ];
-//			mat = tmat* mat * tmat.inverse;
-//			t.localRotation = _initialQuaternions[t] * Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
-			// thierry way
-//			Matrix4x4 tmat = world2local[ t ];
-//			mat = tmat.inverse * mat * tmat;
-//			t.localRotation = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
-			// françois way
-//			mat = loci * mat * loc;
-//			t.localRotation = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) * localRotations[ t ];
 
 		}
 

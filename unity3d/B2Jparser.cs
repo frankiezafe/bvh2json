@@ -163,32 +163,7 @@ namespace B2J {
 				List<float> eulValues = convertListOfFloat ( (IList)( ( IDictionary)keydata ["eulers"] ) ["values"] );
 				
 				for (int i = 0; i < eulIds.Count; i++ ) {
-					
-					//					Quaternion q = Quaternion.identity;
-					//					Vector3 eulers = new Vector3( eulValues [i * 3], -eulValues [i * 3 + 1], -eulValues [i * 3 + 2] );
-					////					eulers.x *= -1;
-					////					eulers.y = eulers.y * -1 + 180;
-					//					//eulers.z *= -1;
-					//					string roto = summary_rotation_order[ eulIds[i] ];
-					////					Debug.Log( eulIds[i] +" rot order: " + roto );
-					//					Quaternion qx = Quaternion.AngleAxis( eulers.x, Vector3.right );
-					//					Quaternion qy = Quaternion.AngleAxis( eulers.y, Vector3.up );
-					//					Quaternion qz = Quaternion.AngleAxis( eulers.z, Vector3.forward );
-					//					if ( roto == "ZXY" )
-					//						q = qz * qx * qy;
-					//					else if ( roto == "ZYX" )
-					//						q = qz * qy * qx;
-					//					else if ( roto == "YZX" )
-					//						q = qy * qz * qx;
-					//					else if ( roto == "YXZ" )
-					//						q = qy * qx * qz;
-					//					else if ( roto == "XZY" )
-					//						q = qy * qz * qx;
-					//					else
-					//						q = qx * qy * qz;
-					////					q.eulerAngles = eulers;
-					//					newkey.rotations[ eulIds[i] ] = q;
-					
+
 					newkey.eulers[ eulIds[i] ] = new Vector3( eulValues [i * 3], -eulValues [i * 3 + 1], -eulValues [i * 3 + 2] );
 					Quaternion q = B2Jparser.renderQuaternion( newkey.eulers[ eulIds[i] ], summary_rotation_order[ eulIds[i] ] );
 					newkey.rotations[ eulIds[i] ] = q;
@@ -288,7 +263,6 @@ namespace B2J {
 			// basic list of bones
 			List<B2Jbone> output = new List<B2Jbone> ();
 			IList dbs = ( IList ) data[ "list" ];
-			//			IList rests = ( IList ) data[ "rest" ];
 			for ( int i = 0; i < dbs.Count; i++ ) {
 				string bname = "" + dbs[ i ];
 				B2Jbone newb = new B2Jbone();
@@ -296,8 +270,6 @@ namespace B2J {
 				newb.rotation_order = summary_rotation_order[ i ];
 				newb.children = new List<B2Jbone>();
 				newb.parent = null;
-				//				newb.rest = new Vector3( float.Parse( "" + rests[ ( i * 3 ) ] ), float.Parse( "" + rests[ ( i * 3 ) + 1 ] ), float.Parse( "" + rests[ ( i * 3 ) + 2 ] ) );
-				//				newb.rest.x *= -1;
 				newb.positions_enabled = false;
 				newb.rotations_enabled = false;
 				newb.scales_enabled = false;

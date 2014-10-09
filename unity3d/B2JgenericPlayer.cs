@@ -31,15 +31,9 @@ namespace B2J {
 		protected Dictionary< Transform, Vector3 > initialTranslations;
 		protected Dictionary< Transform, Vector3 > initialScales;
 		
-//		protected Dictionary< Transform, Quaternion > updatedQuaternions;
-//		protected Dictionary< Transform, Vector3 > updatedTranslations;
-//		protected Dictionary< Transform, Vector3 > updatedScales;
-		
 		protected Dictionary< Transform, Quaternion > quaternions;
 		protected Dictionary< Transform, Vector3 > translations;
 		protected Dictionary< Transform, Vector3 > scales;
-		
-//		protected Dictionary< Transform, float > weights;
 		
 		protected bool interpolate;
 		protected bool rotationNormalise;
@@ -75,11 +69,6 @@ namespace B2J {
 			quaternions = new Dictionary< Transform, Quaternion > ();
 			translations = new Dictionary< Transform, Vector3 > ();
 			scales = new Dictionary< Transform, Vector3 > ();
-			
-//			updatedQuaternions = new Dictionary< Transform, Quaternion >();
-//			updatedTranslations = new Dictionary< Transform, Vector3 >();
-//			updatedScales = new Dictionary< Transform, Vector3 >();
-//			weights = new Dictionary< Transform, float > ();
 			
 			interpolate = true;
 			rotationNormalise = true;
@@ -223,66 +212,43 @@ namespace B2J {
 
 					// first, checking if there some playheads have been destroyed
 					foreach( B2Jblender mb in blenderList ) {
-
 						foreach( B2Jplayhead mb_ph in mb.playheads ) {
-
 							bool found = false;
-
 							foreach ( B2Jplayhead ph in playheadList ) {
 								if ( ph == mb_ph ) {
 									found = true;
 									break;
 								}
 							}
-
 							if ( !found ) {
-
 								mb.playheads.Remove( mb_ph );
-
 							}
-
 						}
-
 					}
 
 					// then checking new ones
 					foreach ( B2Jplayhead ph in playheadList ) {
-					
 						if ( blenderByModel.ContainsKey( ph.getModel() ) ) {
-
 							B2Jblender mb = blenderByModel[ ph.getModel() ];
-
 							bool found = false;
-
 							foreach( B2Jplayhead mb_ph in mb.playheads ) {
-							
 								if ( ph == mb_ph ) {
 									found = true;
 									break;
 								}
-							
 							}
-
 							if ( !found ) {
-
 								mb.playheads.Add( ph );
 								if ( verbose )
 									Debug.Log ( "new playhead added in blender " + ph.getModel() + " >> " + ph.getName() );
-
 							}
-
 						} else {
-
 							Debug.LogError( "the player have no map for this model! '" + ph.getModel() + "'" );
-
 						}
-					
 					}
-					
 					if ( verbose )
 						Debug.Log ( "One or several playheads have been added or removed from the list!" );
 					// map blend have to be checked!
-
 					forceSync = false;
 
 				}
@@ -292,16 +258,6 @@ namespace B2J {
 		}
 		
 		protected void render() {
-
-//			string s = "playheadList.Count " + playheadList.Count +"\n";
-//			foreach (B2Jblender bb in blenderList) {
-//				s += "\t" + bb.getName() +" have "+ bb.playheads.Count + "\n";
-//				foreach( B2Jplayhead mb_ph in bb.playheads ) {
-//					s += "\t\t" + mb_ph.getName() + "\n";
-//				}
-//			}
-//			Debug.Log ( s );
-			// return;
 
 			// all values and weights to initial ones
 			reset();
@@ -403,47 +359,6 @@ namespace B2J {
 					}
 
 				}
-			
-//				float bw = 1;
-//				B2Jmask m = bb.getMask();
-//				if ( rotationNormalise || translationNormalise || scaleNormalise ) {
-//					if ( m != null ) {
-//
-//					} else {
-//						if ( blenderWeight > 1 ) {
-//							bw = bb.getWeight() / blenderWeight;
-//						} else {
-//							bw = bb.getWeight();
-//						}
-//					}
-//				}
-//
-//				Dictionary< Transform, Quaternion > qts = bb.getQuaternions();
-//				foreach( KeyValuePair< Transform, Quaternion > pair in qts ) {
-//					if ( rotationNormalise ) {
-//						quaternions[ pair.Key ] = Quaternion.Slerp( quaternions[ pair.Key ], pair.Value, bw );
-//					} else {
-//						quaternions[ pair.Key ] *= pair.Value;
-//					}
-//				}
-//
-//				Dictionary< Transform, Vector3 > tls = bb.getTranslations();
-//				foreach( KeyValuePair< Transform, Vector3 > pair in tls ) {
-//					if ( translationNormalise ) {
-//						translations[ pair.Key ] = B2Jutils.VectorSlerp( translations[ pair.Key ], pair.Value, bw );
-//					} else {
-//						translations[ pair.Key ] += pair.Value;
-//					}
-//				}
-//				
-//				Dictionary< Transform, Vector3 > scs = bb.getScales();
-//				foreach( KeyValuePair< Transform, Vector3 > pair in scs ) {
-//					if ( scaleNormalise ) {
-//						scales[ pair.Key ] = B2Jutils.VectorSlerp( scales[ pair.Key ], pair.Value, bw );
-//					} else {
-//						scales[ pair.Key ] += pair.Value;
-//					}
-//				}
 
 			}
 

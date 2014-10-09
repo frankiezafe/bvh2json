@@ -101,22 +101,6 @@ namespace B2J {
 
 				}
 			}
-
-			// new records may have been loaded, creating a new playhead if required
-//			foreach (B2Jrecord rec in _records) {
-//				bool found = false;
-//				foreach ( B2Jplayhead ph in phs ) {
-//					if ( ph.getRecord() == rec ) {
-//						found = true;
-//						break;
-//					}
-//				}
-//				if ( !found ) {
-//					B2Jplayhead ph = createNewPlayhead( rec, phs, loop );
-//					dict.Add( ph.getName(), ph );
-//					modified = true;
-//				}
-//			}
 			
 			newRecord = false;
 
