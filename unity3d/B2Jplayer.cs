@@ -98,12 +98,11 @@ public class B2Jplayer : B2JgenericPlayer {
 		foreach ( B2Jblender bb in blenderList ) {
 			B2JblenderUI ui = gameObject.AddComponent<B2JblenderUI>();
 			ui.blender = bb;
-		}
-
-		for( int i = 0; i < playheadList.Count; i++ ) {
-			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
-			ui.Mocap = playheadList[ i ].getName();
-			ui.playhead = playheadList[ i ];
+			foreach( B2Jplayhead ph in bb.playheads ) {
+				B2JplayheadUI uip = gameObject.AddComponent<B2JplayheadUI>();
+				uip.Mocap = ph.getName();
+				uip.playhead = ph;
+			}
 		}
 
 	}
