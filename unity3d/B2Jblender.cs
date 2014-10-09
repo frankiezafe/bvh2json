@@ -135,6 +135,29 @@ namespace B2J {
 
 		}
 
+		private void reset() {
+
+			if ( map == null )
+				return;
+
+			foreach ( Transform t in map.uniqueTransforms ) {
+				if ( map.enable_rotations ) {
+					quaternions[ t ] = Quaternion.identity;
+				}
+				if ( map.enable_translations ) {
+					translations[ t ] = Vector3.zero;
+				}
+				if ( map.enable_scales ) {
+					scales[ t ] = Vector3.one;
+				}
+			}
+
+			newQuaternions.Clear ();
+			newTranslations.Clear ();
+			newScales.Clear ();
+
+		}
+
 		public void update( bool rotNormalise, bool transNormalise, bool scaleNormalise ) {
 
 			if ( 
@@ -149,6 +172,8 @@ namespace B2J {
 			if ( mask != null ) {
 				mask.update();
 			}
+
+			reset ();
 
 			// collecting the total playheads weights
 

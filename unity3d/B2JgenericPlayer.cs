@@ -119,7 +119,7 @@ namespace B2J {
 			
 		}
 
-		public void reset() {
+		private void reset() {
 		
 			foreach( Transform t in all_transforms ) {
 				quaternions[ t ] = B2Jutils.copy( initialQuaternions[ t ] );
