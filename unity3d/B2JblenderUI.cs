@@ -45,8 +45,11 @@ public class B2JblenderUI : MonoBehaviour {
 			last_enable_smooth = enable_smooth;
 		}
 
-		if (last_weight != weight) {
+		if ( last_weight != weight ) {
 			blender.setWeight( weight );
+			last_weight = weight;
+		} else if ( weight != blender.getWeight() ) {
+			weight = blender.getWeight();
 			last_weight = weight;
 		}
 

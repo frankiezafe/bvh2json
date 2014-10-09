@@ -43,7 +43,7 @@ namespace B2J {
 
 	public enum B2JrequestType {
 		B2JREQ_TEXTASSET = 0,
-		B2JREQ_KINECT = 1
+		B2JREQ_STREAM = 1
 	}
 
 	public class B2Jrequest {
@@ -71,9 +71,20 @@ namespace B2J {
 		public Vector3 head;
 		public Vector3 tail;
 		public Vector3 rest;
-		public bool positions_enabled;
 		public bool rotations_enabled;
+		public bool translations_enabled;
 		public bool scales_enabled;
+		public void init() {
+			rotation_order = "XYZ";
+			parent = null;
+			children = new List<B2Jbone>();
+			head = Vector3.zero;
+			tail = Vector3.zero;
+			rest = Vector3.zero;
+			rotations_enabled = true;
+			translations_enabled = true;
+			scales_enabled = true;
+		}
 	}
 
 	public class B2Jkey {
@@ -106,7 +117,8 @@ namespace B2J {
 	public enum B2Jloop {
 		B2JLOOP_NONE = 0,
 		B2JLOOP_NORMAL = 1,
-		B2JLOOP_PALINDROME = 2
+		B2JLOOP_PALINDROME = 2,
+		B2JLOOP_STREAM = 3
 	}
 	
 	public class B2Jrecord {

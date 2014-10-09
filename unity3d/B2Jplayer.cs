@@ -73,9 +73,6 @@ public class B2Jplayer : B2JgenericPlayer {
 		loadAsset( "bvh2json/data/capoiera" );
 		loadAsset( "bvh2json/data/ariaII_02" );
 
-		loadLive( "kinect_visitor" );
-		loadLive( "kinect_dancer" );
-
 		// after this, everything should be ready,
 		// blender and assets loaded 
 		process();

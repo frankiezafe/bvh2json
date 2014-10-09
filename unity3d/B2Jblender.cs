@@ -173,7 +173,7 @@ namespace B2J {
 				mask.update();
 			}
 
-			reset ();
+			// reset ();
 
 			// collecting the total playheads weights
 
@@ -224,6 +224,8 @@ namespace B2J {
 								Matrix4x4 tmat = world2local[ t ];
 								mat = tmat* mat * tmat.inverse;
 								newrot = Quaternion.LookRotation( mat.GetColumn(2), mat.GetColumn(1) ) ;
+							} else if ( ph.getModel() == "openni"  ) {
+								// nothing to do for now, rotations are already in the avatar space!
 							} else {
 								Debug.LogError( "enable_rotations :: UNKNOWN B2J MODEL!!! : " + ph.getModel() );
 							}
@@ -248,6 +250,9 @@ namespace B2J {
 							
 							Vector3 newpos = ph.getPositions()[ bid ];
 							if ( ph.getModel() == "bvh_numediart" || ph.getModel() == "bvh_numediart_other" ) {
+								newpos *= 0.01f;
+							} else if ( ph.getModel() == "openni" ) {
+								// nothing to do for now, rotations are already in the avatar space!
 								newpos *= 0.01f;
 							} else {
 								Debug.LogError( "enable_translations :: UNKNOWN B2J MODEL!!! : " + ph.getModel() );

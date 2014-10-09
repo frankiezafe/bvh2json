@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 using System;
 using System.Threading;
@@ -270,11 +270,11 @@ namespace B2J {
 				newb.rotation_order = summary_rotation_order[ i ];
 				newb.children = new List<B2Jbone>();
 				newb.parent = null;
-				newb.positions_enabled = false;
+				newb.translations_enabled = false;
 				newb.rotations_enabled = false;
 				newb.scales_enabled = false;
 				if ( summary_p.Contains( i ) || summary_p_all ) {
-					newb.positions_enabled = true;
+					newb.translations_enabled = true;
 				}
 				if ( summary_euler.Contains( i ) || summary_euler_all ) {
 					newb.rotations_enabled = true;

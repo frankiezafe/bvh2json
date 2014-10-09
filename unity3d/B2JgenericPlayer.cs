@@ -162,7 +162,7 @@ namespace B2J {
 
 		public void loadLive( string name ) {
 			B2Jrequest req = new B2Jrequest ();
-			req.type = B2JrequestType.B2JREQ_KINECT;
+			req.type = B2JrequestType.B2JREQ_STREAM;
 			req.name = name;
 			syncRequests.Add( req );
 		}
@@ -250,7 +250,8 @@ namespace B2J {
 
 					// first, checking if there some playheads have been destroyed
 					foreach( B2Jblender mb in blenderList ) {
-						foreach( B2Jplayhead mb_ph in mb.playheads ) {
+						List< B2Jplayhead > tmpphs = new List< B2Jplayhead > ( mb.playheads );
+						foreach( B2Jplayhead mb_ph in tmpphs ) {
 							bool found = false;
 							foreach ( B2Jplayhead ph in playheadList ) {
 								if ( ph == mb_ph ) {
