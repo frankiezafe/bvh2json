@@ -3,7 +3,7 @@ using System.Collections;
 
 using B2J;
 
-public class B2JblenderUI : MonoBehaviour {
+public class UIblender : MonoBehaviour {
 
 	public B2Jblender blender;
 	
@@ -23,7 +23,7 @@ public class B2JblenderUI : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 	
-		Model = blender.getName();
+		Model = blender.getMap().model;
 		weight = blender.getWeight ();
 		last_weight = weight;
 		smooth_speed = blender.getSmoothSpeed ();

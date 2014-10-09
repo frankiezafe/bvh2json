@@ -47,7 +47,6 @@ namespace B2J {
 		public int current;
 		public List< Quaternion > bonesVisitor;
 
-		// Use this for initialization
 		void Start () {
 
 			// kd.SequenceTable[0].PoseTable[0];
@@ -69,7 +68,6 @@ namespace B2J {
 			return mat.GetColumn (3);
 		}
 
-		// Update is called once per frame
 		void Update () {
 		
 			current = frameCount;

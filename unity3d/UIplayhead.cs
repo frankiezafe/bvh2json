@@ -3,11 +3,12 @@ using System.Collections;
 
 using B2J;
 
-public class B2JplayheadUI : MonoBehaviour {
+public class UIplayhead : MonoBehaviour {
 
 	public B2Jplayhead playhead;
-	
-	public string Mocap;
+
+	public string Model;
+	public string Name;
 
 	[ Range( 0.0f, 1.0f ) ]
 	public float weight;
@@ -22,6 +23,8 @@ public class B2JplayheadUI : MonoBehaviour {
 	void Start () {
 	
 		weight = playhead.getWeight();
+		Name = playhead.getName ();
+		Model = playhead.getModel ();
 
 	}
 	

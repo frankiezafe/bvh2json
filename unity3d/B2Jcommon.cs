@@ -29,7 +29,7 @@ namespace B2J {
 
 		public static void copy( B2JmaskConfig src, B2JmaskConfig dest ) {
 			dest.name = src.name;
-			dest.description = dest.description;
+			dest.description = src.description;
 			dest.version = src.version;
 			dest.weights.Clear ();
 			foreach( KeyValuePair< Transform, float > pair in src.weights )

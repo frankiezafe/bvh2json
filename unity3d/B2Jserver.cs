@@ -236,7 +236,8 @@ namespace B2J {
 
 			// is there sync requests?
 			if ( syncRequests.Count > 0 ) {
-				List< B2Jrequest > tmpreqs = new List< B2Jrequest > (syncRequests);
+
+				List< B2Jrequest > tmpreqs = new List< B2Jrequest > ( syncRequests );
 
 				foreach( B2Jrequest req in tmpreqs ) {
 
@@ -255,15 +256,22 @@ namespace B2J {
 					} else if ( req.type == B2JrequestType.B2JREQ_STREAM ) {
 
 						if ( loaded.ContainsKey ( req.name ) ) {
+
 							B2Jplayhead ph = createNewPlayhead( loaded[ req.name ], phs, B2Jloop.B2JLOOP_STREAM );
 							dict.Add( ph.getName(), ph );
 							modified = true;
-						} else {
-							Debug.LogError( "Impossible to load the record '" + req.name +"'" );
-						}
+							syncRequests.Remove( req );
+							if ( verbose )
+								Debug.Log( "Stream '" + req.name +"' connected" );
 
-//						Debug.Log( "Implement connection to kinect records, special kind... '" + req.name + "'" );
-						syncRequests.Remove( req );
+						} else {
+
+							if ( verbose )
+								Debug.Log( "Impossible to load the record '" + req.name +"', maybe next time..." );
+							// maybe next time...
+//							Debug.LogError( "Impossible to load the record '" + req.name +"'" );
+
+						}
 
 					} else {
 

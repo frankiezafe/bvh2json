@@ -42,6 +42,7 @@ namespace B2J {
 		protected B2Jloop defaultLoop;
 
 		protected bool verbose;
+		protected bool smthchanged;
 		private bool forceSync;
 
 		public B2JgenericPlayer() {
@@ -78,6 +79,7 @@ namespace B2J {
 			defaultLoop = B2Jloop.B2JLOOP_NORMAL;
 
 			verbose = false;
+			smthchanged = false;
 			forceSync = true;
 
 		}
@@ -242,9 +244,11 @@ namespace B2J {
 		
 		private void synchronise() {
 
+			smthchanged = false;
+
 			if ( B2Jserver != null ) {
 
-				bool smthchanged = B2Jserver.syncPlayheads( syncRequests, playheadList, playheadDict, defaultLoop );
+				smthchanged = B2Jserver.syncPlayheads( syncRequests, playheadList, playheadDict, defaultLoop );
 
 				if ( smthchanged || forceSync ) {
 
