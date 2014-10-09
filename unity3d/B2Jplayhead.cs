@@ -60,7 +60,7 @@ namespace B2J {
 			_time = _cueIn;
 			_percent = 0;
 			_speed = 1;
-			_weight = 1;
+			_weight = 0;
 			_mult = 1;
 
 			mask = null;

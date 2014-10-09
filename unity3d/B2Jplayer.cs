@@ -59,7 +59,7 @@ public class B2Jplayer : B2JgenericPlayer {
 		mask_lower_only = false;
 		last_use_mask = -1;
 
-		setVerbose();
+//		setVerbose();
 
 		initPlayer();
 
@@ -69,11 +69,20 @@ public class B2Jplayer : B2JgenericPlayer {
 		loadMask ( "bvh2json/data/tanuki_upperbody_mask" );
 		loadMask ( "bvh2json/data/tanuki_lowerbody_mask" );
 
-		loadRecord( "bvh2json/data/thomas_se_leve_02" );
-		loadRecord( "bvh2json/data/capoiera" );
-		loadRecord( "bvh2json/data/ariaII_02" );
+		loadAsset( "bvh2json/data/thomas_se_leve_02" );
+		loadAsset( "bvh2json/data/capoiera" );
+		loadAsset( "bvh2json/data/ariaII_02" );
 
+		loadLive( "kinect_visitor" );
+		loadLive( "kinect_dancer" );
+
+		// after this, everything should be ready,
+		// blender and assets loaded 
 		process();
+
+		setWeight ( "bvh_numediart_other", 0 );
+		setWeight ( "miko_ariaII_02", 1 );
+		setWeight ( "thomas_se_leve_02", 1 );
 
 		percent = 0;
 		lastPercent = percent;
@@ -92,11 +101,6 @@ public class B2Jplayer : B2JgenericPlayer {
 		}
 
 		for( int i = 0; i < playheadList.Count; i++ ) {
-			if ( i == 0 ) {
-				playheadList[ i ].setWeight( 1 );
-			} else {
-				playheadList[ i ].setWeight( 0 );
-			}
 			B2JplayheadUI ui = gameObject.AddComponent<B2JplayheadUI>();
 			ui.Mocap = playheadList[ i ].getName();
 			ui.playhead = playheadList[ i ];

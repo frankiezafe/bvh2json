@@ -62,7 +62,7 @@ namespace B2J {
 			}
 		}
 
-		public bool syncPlayheads( List< string > syncRequests, List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
+		public bool syncPlayheads( List< B2Jrequest > syncRequests, List< B2Jplayhead > phs, Dictionary< string, B2Jplayhead > dict, B2Jloop loop ) {
 
 			bool modified = false;
 
@@ -80,25 +80,33 @@ namespace B2J {
 
 			// is there sync requests?
 			if ( syncRequests.Count > 0 ) {
-				List< string > tmpreqs = new List< string > (syncRequests);
-				foreach( string path in tmpreqs ) {
+				List< B2Jrequest > tmpreqs = new List< B2Jrequest > (syncRequests);
 
-					load( path );
+				foreach( B2Jrequest req in tmpreqs ) {
 
-					if ( _loadedpath.ContainsKey ( path ) ) {
+					if ( req.type == B2JrequestType.B2JREQ_TEXTASSET ) {
 
-						B2Jplayhead ph = createNewPlayhead( _loadedpath[ path ], phs, loop );
-						dict.Add( ph.getName(), ph );
-						modified = true;
+						load( req.name );
+						if ( _loadedpath.ContainsKey ( req.name ) ) {
+							B2Jplayhead ph = createNewPlayhead( _loadedpath[ req.name ], phs, loop );
+							dict.Add( ph.getName(), ph );
+							modified = true;
+						} else {
+							Debug.LogError( "Impossible to load the record '" + req.name +"'" );
+						}
+						syncRequests.Remove( req );
+
+					} else if ( req.type == B2JrequestType.B2JREQ_KINECT ) {
+
+						Debug.Log( "Implement connection to kinect records, special kind... '" + req.name + "'" );
+						syncRequests.Remove( req );
 
 					} else {
 
-						Debug.LogError( "Impossible to load the record '" + path +"'" );
+						Debug.LogError( "Unknown request type! '" + req.name +"'" );
+						syncRequests.Remove( req );
 
 					}
-
-					syncRequests.Remove( path );
-
 				}
 			}
 			

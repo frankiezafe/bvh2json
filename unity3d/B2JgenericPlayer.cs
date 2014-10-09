@@ -21,7 +21,7 @@ namespace B2J {
 
 		// this list is storing the requested records
 		// it is consumed by server and cleaned once loaded
-		protected List< string > syncRequests;
+		protected List< B2Jrequest > syncRequests;
 
 		protected Dictionary < Transform, Matrix4x4 > world2local;
 		protected Dictionary < string, Transform > armature;
@@ -55,7 +55,7 @@ namespace B2J {
 			playheadDict = new Dictionary< string, B2Jplayhead >();
 			playheadList = new List< B2Jplayhead > ();
 
-			syncRequests = new List< string > ();
+			syncRequests = new List< B2Jrequest > ();
 			
 			// making a copy of the current object rotations and orientations
 			world2local = new Dictionary < Transform, Matrix4x4 >();
@@ -88,6 +88,18 @@ namespace B2J {
 		
 		public void setVerbose() {
 			verbose = true;
+		}
+
+		public void setWeight( string name, float w ) {
+		
+			if ( blenderByModel.ContainsKey( name ) ) {
+				blenderByModel[ name ].setWeight( w );
+			}
+
+			if ( playheadDict.ContainsKey( name ) ) {
+				playheadDict[ name ].setWeight( w );
+			}
+		
 		}
 
 		protected void initPlayer() {
@@ -125,8 +137,18 @@ namespace B2J {
 
 		}
 
-		public void loadRecord( string path ) {
-			syncRequests.Add( path );
+		public void loadAsset( string path ) {
+			B2Jrequest req = new B2Jrequest ();
+			req.type = B2JrequestType.B2JREQ_TEXTASSET;
+			req.name = path;
+			syncRequests.Add( req );
+		}
+
+		public void loadLive( string name ) {
+			B2Jrequest req = new B2Jrequest ();
+			req.type = B2JrequestType.B2JREQ_KINECT;
+			req.name = name;
+			syncRequests.Add( req );
 		}
 
 		public void loadMapping( string path ) {

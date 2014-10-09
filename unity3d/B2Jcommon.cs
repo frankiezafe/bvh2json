@@ -39,7 +39,19 @@ namespace B2J {
 		
 	}
 
-	// RECORDS SPECIFIC OBJECTS
+	// REQUEST SPECIFIC
+
+	public enum B2JrequestType {
+		B2JREQ_TEXTASSET = 0,
+		B2JREQ_KINECT = 1
+	}
+
+	public class B2Jrequest {
+		public B2JrequestType type;
+		public string name;
+	}
+
+	// RECORDS SPECIFIC
 
 	public class B2Jgroup {
 		public string name;
@@ -114,7 +126,7 @@ namespace B2J {
 		
 	}
 
-	// MASK SPECIFIC OBJECTS
+	// MASK SPECIFIC
 
 	public class B2JmaskConfig {
 		public string name;
@@ -169,7 +181,7 @@ namespace B2J {
 
 	}
 
-	// MAP SPECIFIC OBJECTS
+	// MAP SPECIFIC
 
 	public class B2JtransformList {
 		public List< Transform > transforms;

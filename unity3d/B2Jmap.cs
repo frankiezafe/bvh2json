@@ -30,7 +30,6 @@ namespace B2J {
 			transformListByName = new Dictionary< string, B2JtransformList > ();
 			transformListById = new Dictionary< int, B2JtransformList > ();
 			locals = new B2JmapLocalValues ();
-//			Debug.Log ("public B2Jmap :: TEMPORARY smooth_mehod HARDCODING, TO EXPOSE IN JSON");
 			smooth_mehod = B2JsmoothMethod.B2JSMOOTH_NONE;
 
 		}
